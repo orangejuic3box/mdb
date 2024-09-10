@@ -64,12 +64,36 @@ class CommandInterface:
     #======================================================================================
 
     def game(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
-        return True
+        # Check if valid integers were given for grid size
+        try:
+            width = int(args[0])
+            height = int(args[1])
+
+            # If valid grid size, create grid
+            if 1 <= width <= 20 and 1 <= height <= 20:
+                self.grid = [["." for _ in range(width)] for _ in range(height)]
+                return True
+
+            else:
+                print("Error: Grid width and height must be between 1 and 20.")
+                return False
+        
+        # Raise exception if invalid arguments are given for grid size
+        except:
+            print("Error: Invalid input for grid size.")
+            return False
     
     def show(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
-        return True
+        # Display grid if it exists
+        try:
+            for row in self.board:
+                print("".join(row))
+            return True
+        
+        # Raise exception if no grid exists
+        except:
+            print("Error: No game exists.")
+            return False
     
     def play(self, args):
         raise NotImplementedError("This command is not yet implemented.")
