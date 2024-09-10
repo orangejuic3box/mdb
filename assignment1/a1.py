@@ -19,6 +19,7 @@ class CommandInterface:
             "genmove" : self.genmove,
             "winner" : self.winner
         }
+        # do i set empty self.grid, self.height, self.width??
 
     # Convert a raw string to a command and a list of arguments
     def process_command(self, str):
@@ -48,6 +49,7 @@ class CommandInterface:
                 return True
             if self.process_command(str):
                 print("= 1\n")
+                
 
     # List available commands
     def help(self, args):
@@ -101,6 +103,14 @@ class CommandInterface:
     
     def legal(self, args):
         raise NotImplementedError("This command is not yet implemented.")
+        # Check if this move (in the same format as in play) is legal. 
+        # Answer yes or no. 
+        # The command status is = 1.
+        
+        # Triple contraint: no 3 consecutive digits in ROW or COLUMN
+        # Balance constraint
+
+
         return True
     
     def genmove(self, args):
