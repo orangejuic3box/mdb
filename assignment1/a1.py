@@ -86,7 +86,7 @@ class CommandInterface:
     def show(self, args):
         # Display grid if it exists
         try:
-            for row in self.board:
+            for row in self.grid:
                 print("".join(row))
             return True
         
