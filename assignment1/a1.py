@@ -155,6 +155,9 @@ class CommandInterface:
         row = self.get_row(y)
         col = self.get_col(x)
         # checking balance
+        # print("digit", digit)
+        # print("row", row, row.count(digit), row_max)
+        # print("col", col, col.count(digit), col_max)
         if row.count(digit) != row_max and col.count(digit) != col_max: #technically count should never be above the max, so checking that its != is the same as checking less than
             # print("passed balance check")
             return True
@@ -164,9 +167,11 @@ class CommandInterface:
     def triple(self, x, y, digit):
         # Triple contraint: no 3 consecutive digits in ROW or COLUMN
         '''This function gathers the possible collection of the consecutive
-        positions around the given play position into a string. Inserts the
-        supposed play into that string and then checks if the triple constraint
-        is being violated. Returns True or False'''
+        positions around the given play position into a string. Inserts the 
+        supposed play (digit) into that string and then checks if the triple
+        constraint is being violated. If given position is close to the border,
+        handles the IndexError for out of bound positions and continues on. 
+        Returns True or False.'''
 
         # print("triple chair")
         row = ''
@@ -225,7 +230,7 @@ class CommandInterface:
 
             # only check triples if width is greater than 3
             if self.width > 3:
-                if self.balance and self.triple(x, y, digit):
+                if self.balance(x, y, digit) and self.triple(x, y, digit):
                     print("yes")
                 else:
                     print("no")
