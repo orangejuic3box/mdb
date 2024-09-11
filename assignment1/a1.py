@@ -3,6 +3,7 @@
 # Full assignment specification here: https://webdocs.cs.ualberta.ca/~mmueller/courses/cmput455/assignments/a1.html
 
 import sys
+import math
 
 class CommandInterface:
     # The following is already defined and does not need modification
@@ -116,7 +117,7 @@ class CommandInterface:
         y = int(args[1])
         digit = args[2]
 
-        self.grid[x][y] = digit
+        self.grid[y][x] = digit
         # print(self.grid)
         print("placed")
         return True
@@ -127,6 +128,32 @@ class CommandInterface:
         self.grid = [[str((i * self.width) + j )for j in range(self.width)] for i in range(self.height)]
         # print(self.grid)
         return True
+
+    def get_row(self,y):
+        # returns a List object of the row
+        row = self.grid[y]
+        return row
+    
+    def get_col(self,x):
+        # returns a List object of the column
+        col = []
+        for j in range(self.height):
+            col.append(self.grid[j][x])
+        return col
+
+    def balance(self, x, y, digit):
+        # Balance constraint: the max number of playable digits is half the size of its ROW and COLUMN (rounded up)
+        row_max = math.ceil(self.height/2)
+        col_max = math.ceil(self.width/2)
+        row = self.get_row(y)
+        col = self.get_col(x)
+        
+        # checking balance
+        if row.count(digit) != row_max and col.count(digit) != col_max:
+            print("passed balance check")
+            return True
+        print("failed balance check")
+        return False
     
     
     def legal(self, args):
@@ -140,9 +167,9 @@ class CommandInterface:
 
         try:
             print("converting arguments")
-            x = int(args[0])
-            y = int(args[1])
-            digit = int(args[2])
+            x = int(args[0]) # column
+            y = int(args[1]) # row
+            digit = args[2]
             print("converted")
             # Goes to the row and checks both constraints
 
@@ -151,32 +178,33 @@ class CommandInterface:
             x-1 y, x y, x+1 y
             x-2 y, x-1 y, x y'''
 
+            self.balance(x,y, digit)
 
-            row = self.grid[y]
-            for i in range(self.width):
-                # print("i is", i)
-                # Case: grid width is 3 or smaller
-                if self.width <= 3:
-                    if self.width == 1:
-                        # print("width is 1")
-                        print(row[i])
-                    if self.width == 2:
-                        # print("width is 2")
-                        print(row[i], row[i+1])
-                    if self.width == 3:
-                        # print("width is 3")
-                        print(row[i], row[i+1], row[i+2])
-                    break
-                # Case: grid width bigger than 3
-                if i < self.width-2: # need to test this against width 1, 2, 3
-                    # print(i, width-2)
-                    consec = [row[i], row[i+1], row[i+2]]
-                    # print(row[i], row[i+1], row[i+2])
-                    print(consec)
+            # row = self.grid[y]
+            # for i in range(self.width):
+            #     # print("i is", i)
+            #     # Case: grid width is 3 or smaller
+            #     if self.width <= 3:
+            #         if self.width == 1:
+            #             # print("width is 1")
+            #             print(row[i])
+            #         if self.width == 2:
+            #             # print("width is 2")
+            #             print(row[i], row[i+1])
+            #         if self.width == 3:
+            #             # print("width is 3")
+            #             print(row[i], row[i+1], row[i+2])
+            #         break
+            #     # Case: grid width bigger than 3
+            #     if i < self.width-2: # need to test this against width 1, 2, 3
+            #         # print(i, width-2)
+            #         consec = [row[i], row[i+1], row[i+2]]
+            #         # print(row[i], row[i+1], row[i+2])
+            #         print(consec)
 
-                else:
-                    print("Width is 0")
-                    break
+            #     else:
+            #         print("Width is 0")
+            #         break
             # Goes to the column and checks both constraints
             return True
         except TypeError as e:
