@@ -123,6 +123,7 @@ class CommandInterface:
         return True
     
     def griddy(self,args):
+        # creates a grid of the given size and just numbers each position increasingly, for testing purposes
         self.width = int(args[0])
         self.height = int(args[1])
         self.grid = [[str((i * self.width) + j )for j in range(self.width)] for i in range(self.height)]
@@ -147,11 +148,12 @@ class CommandInterface:
         and column of the given play position and checks the count of the given
         play (digit) in its row or column for the balance constraint. 
         Returns True or False.'''
+        # getting max values for row and column
         row_max = math.ceil(self.height/2)
         col_max = math.ceil(self.width/2)
+        # getting row and column
         row = self.get_row(y)
         col = self.get_col(x)
-        
         # checking balance
         if row.count(digit) != row_max and col.count(digit) != col_max: #technically count should never be above the max, so checking that its != is the same as checking less than
             # print("passed balance check")
@@ -175,6 +177,7 @@ class CommandInterface:
             if i == 0:
                 row += digit
                 col += digit
+            # gets the value from the current grid in position
             else:
                 try:
                     if x+i >=0:
@@ -183,8 +186,6 @@ class CommandInterface:
                     # print("row failed")
                     pass
                 try:
-                    # print("for col: ex is", i)
-                    # print("trying to grab position", x, y+i, "for column purposes")                
                     if y+i >=0:
                         col += self.grid[y+i][x]
                 except IndexError:
