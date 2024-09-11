@@ -154,6 +154,29 @@ class CommandInterface:
             return True
         print("failed balance check")
         return False
+
+    def triple(self, x, y, digit):
+        print("triple chair")
+        row = ''
+        col = ''
+        for i in range(-2, 3):
+            print("i is", i)
+            try:
+                if x+i >=0:
+                    row += self.grid[y][x+i]
+            except IndexError:
+                print("row failed")
+                pass
+            try:
+                print("for col: ex is", i)
+                print("trying to grab position", x, y+i, "for column purposes")                
+                if y+i >=0:
+                    col += self.grid[y+i][x]
+            except IndexError:
+                print("position", x, y+i, "failed")
+                pass
+        print("col", col)
+        print("row", row)
     
     
     def legal(self, args):
@@ -179,6 +202,14 @@ class CommandInterface:
             x-2 y, x-1 y, x y'''
 
             self.balance(x,y, digit)
+
+            # only check triples if width is greater than 3
+            if self.width > 3:
+                self.triple(x, y, digit)
+
+
+
+
 
             # row = self.grid[y]
             # for i in range(self.width):
