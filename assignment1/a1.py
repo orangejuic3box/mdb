@@ -15,14 +15,15 @@ class CommandInterface:
             "game" : self.game,
             "show" : self.show,
             "play" : self.play,
-            "place" : self.place,
             "legal" : self.legal,
             "genmove" : self.genmove,
-            "winner" : self.winner
+            "winner" : self.winner,
+            "place" : self.place,
+            "griddy" : self.griddy
         }
         self.grid = None
         self.height = None
-        self.weight = None
+        self.width = None
         # do i set empty self.grid, self.height, self.width??
 
     # Convert a raw string to a command and a list of arguments
@@ -120,6 +121,13 @@ class CommandInterface:
         print("placed")
         return True
     
+    def griddy(self,args):
+        self.width = int(args[0])
+        self.height = int(args[1])
+        self.grid = [[str((i * self.width) + j )for j in range(self.width)] for i in range(self.height)]
+        # print(self.grid)
+        return True
+    
     
     def legal(self, args):
         # raise NotImplementedError("This command is not yet implemented.")
@@ -137,6 +145,13 @@ class CommandInterface:
             digit = int(args[2])
             print("converted")
             # Goes to the row and checks both constraints
+
+            '''given x y look at that position as
+            x y, x+1, y, x+2 y
+            x-1 y, x y, x+1 y
+            x-2 y, x-1 y, x y'''
+
+
             row = self.grid[y]
             for i in range(self.width):
                 # print("i is", i)
