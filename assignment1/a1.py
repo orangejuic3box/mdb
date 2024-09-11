@@ -143,101 +143,100 @@ class CommandInterface:
 
     def balance(self, x, y, digit):
         # Balance constraint: the max number of playable digits is half the size of its ROW and COLUMN (rounded up)
+        '''This function finds the max number of playable digits, gets the row
+        and column of the given play position and checks the count of the given
+        play (digit) in its row or column for the balance constraint. 
+        Returns True or False.'''
         row_max = math.ceil(self.height/2)
         col_max = math.ceil(self.width/2)
         row = self.get_row(y)
         col = self.get_col(x)
         
         # checking balance
-        if row.count(digit) != row_max and col.count(digit) != col_max:
-            print("passed balance check")
+        if row.count(digit) != row_max and col.count(digit) != col_max: #technically count should never be above the max, so checking that its != is the same as checking less than
+            # print("passed balance check")
             return True
-        print("failed balance check")
+        # print("failed balance check")
         return False
 
     def triple(self, x, y, digit):
-        print("triple chair")
+        # Triple contraint: no 3 consecutive digits in ROW or COLUMN
+        '''This function gathers the possible collection of the consecutive
+        positions around the given play position into a string. Inserts the
+        supposed play into that string and then checks if the triple constraint
+        is being violated. Returns True or False'''
+
+        # print("triple chair")
         row = ''
         col = ''
         for i in range(-2, 3):
-            print("i is", i)
-            try:
-                if x+i >=0:
-                    row += self.grid[y][x+i]
-            except IndexError:
-                print("row failed")
-                pass
-            try:
-                print("for col: ex is", i)
-                print("trying to grab position", x, y+i, "for column purposes")                
-                if y+i >=0:
-                    col += self.grid[y+i][x]
-            except IndexError:
-                print("position", x, y+i, "failed")
-                pass
-        print("col", col)
-        print("row", row)
+            # print("i is", i)
+            # inserts supposed play (digit) into the row and column to be checked
+            if i == 0:
+                row += digit
+                col += digit
+            else:
+                try:
+                    if x+i >=0:
+                        row += self.grid[y][x+i]
+                except IndexError:
+                    # print("row failed")
+                    pass
+                try:
+                    # print("for col: ex is", i)
+                    # print("trying to grab position", x, y+i, "for column purposes")                
+                    if y+i >=0:
+                        col += self.grid[y+i][x]
+                except IndexError:
+                    # print("col failed")
+                    pass
+        # print("col", col)
+        # print("row", row)
+
+        check = digit*3
+        # print(check)
+        # print(check in row, "row")
+        # print(check in col, "col")
+        if check in row or check in col:
+            # print("invalid play for 3's")
+            return False
+        return True
     
     
     def legal(self, args):
-        # raise NotImplementedError("This command is not yet implemented.")
         # Check if this move (in the same format as in play) is legal. 
         # Answer yes or no. 
         # The command status is = 1.
         
         # Triple contraint: no 3 consecutive digits in ROW or COLUMN
         # Balance constraint: the max number of playable digits is half the size of its ROW and COLUMN (rounded up)
-
+        '''This function checks the user inputs and then checks if the game
+        constraints hold given the supposed play. Triple constraint is only
+        looked at if the width of the grid is greater than 3.'''
+        
         try:
-            print("converting arguments")
             x = int(args[0]) # column
             y = int(args[1]) # row
+            # checks for index within bound
+            if x not in range(self.width) or y not in range(self.height):
+                raise IndexError
             digit = args[2]
-            print("converted")
-            # Goes to the row and checks both constraints
-
-            '''given x y look at that position as
-            x y, x+1, y, x+2 y
-            x-1 y, x y, x+1 y
-            x-2 y, x-1 y, x y'''
-
-            self.balance(x,y, digit)
 
             # only check triples if width is greater than 3
             if self.width > 3:
-                self.triple(x, y, digit)
-
-
-
-
-
-            # row = self.grid[y]
-            # for i in range(self.width):
-            #     # print("i is", i)
-            #     # Case: grid width is 3 or smaller
-            #     if self.width <= 3:
-            #         if self.width == 1:
-            #             # print("width is 1")
-            #             print(row[i])
-            #         if self.width == 2:
-            #             # print("width is 2")
-            #             print(row[i], row[i+1])
-            #         if self.width == 3:
-            #             # print("width is 3")
-            #             print(row[i], row[i+1], row[i+2])
-            #         break
-            #     # Case: grid width bigger than 3
-            #     if i < self.width-2: # need to test this against width 1, 2, 3
-            #         # print(i, width-2)
-            #         consec = [row[i], row[i+1], row[i+2]]
-            #         # print(row[i], row[i+1], row[i+2])
-            #         print(consec)
-
-            #     else:
-            #         print("Width is 0")
-            #         break
-            # Goes to the column and checks both constraints
+                if self.balance and self.triple(x, y, digit):
+                    print("yes")
+                else:
+                    print("no")
+            else:
+                if self.balance(x, y, digit):
+                    print("yes")
+                else:
+                    print("no")
             return True
+        except IndexError:
+            print("Error: Index position out of bounds.")
+            return False
         except TypeError as e:
             print(e)
             print("Error: Game does not exist.")
