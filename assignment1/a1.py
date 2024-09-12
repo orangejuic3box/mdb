@@ -109,24 +109,10 @@ class CommandInterface:
     
     def play(self, args):
         try:
-            # Check if # of args is correct
-            if len(args) != 3:
-                print("= illegal move: {} wrong number of arguments\n".format(' '.join(args)))
-                return False
-
-            x = args[0]
-            y = args[1]
-            digit = args[2]
-            
             # Check if move is legal to place digit on grid
-            if self.legal([x, y, digit]):
-                self.place([x, y, digit])
+            if self.legal(args):
+                self.place(args)
                 return True
-
-            # Otherwise, print error
-            # else:
-            #     print("= illegal move: {} {} {}".format(x, y, digit))
-            #     return False
 
         # Raise exception if illegal move
         except Exception as e:
@@ -247,6 +233,11 @@ class CommandInterface:
         looked at if the width of the grid is greater than 3.'''
         
         try:
+            # check if # of args is correct
+            if len(args) != 3:
+                print("= illegal move: {} wrong number of arguments\n".format(' '.join(args)))
+                return False
+            
             x = int(args[0]) # column
             y = int(args[1]) # row
             # checks for index within bound
