@@ -85,12 +85,13 @@ class CommandInterface:
                 return True
 
             else:
-                print("Error: Grid width and height must be between 1 and 20.")
+                print("Error: Grid width and height must be between 1 and 20.\n")
                 return False
         
         # Raise exception if invalid arguments are given for grid size
-        except:
-            print("Error: Invalid input for grid size.")
+        except Exception as e:
+            # print(e)
+            print("Error: Invalid input for grid size.\n")
             return False
     
     def show(self, args):
@@ -107,8 +108,31 @@ class CommandInterface:
             return False
     
     def play(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
-        return True
+        try:
+            # Check if # of args is correct
+            if len(args) != 3:
+                print("= illegal move: {} wrong number of arguments\n".format(' '.join(args)))
+                return False
+
+            x = args[0]
+            y = args[1]
+            digit = args[2]
+            
+            # Check if move is legal to place digit on grid
+            if self.legal([x, y, digit]):
+                self.place([x, y, digit])
+                return True
+
+            # Otherwise, print error
+            # else:
+            #     print("= illegal move: {} {} {}".format(x, y, digit))
+            #     return False
+
+        # Raise exception if illegal move
+        except Exception as e:
+            # print(e)
+            print("= illegal move : {} invalid input\n".format(' '.join(args)))
+            return False
     
     def place(self,args):
         ''' Helper Function for legal purposes'''
@@ -119,7 +143,7 @@ class CommandInterface:
 
         self.grid[y][x] = digit
         # print(self.grid)
-        print("placed")
+        # print("placed")
         return True
     
     def griddy(self,args):
@@ -162,6 +186,7 @@ class CommandInterface:
             # print("passed balance check")
             return True
         # print("failed balance check")
+        print("= illegal move: {} {} {} too many {}\n".format(x, y, digit, digit))
         return False
 
     def triple(self, x, y, digit):
@@ -205,6 +230,7 @@ class CommandInterface:
         # print(check in col, "col")
         if check in row or check in col:
             # print("invalid play for 3's")
+            print("= illegal move: {} {} {} three in a row\n".format(x, y, digit))
             return False
         return True
     
@@ -214,7 +240,7 @@ class CommandInterface:
         # Answer yes or no. 
         # The command status is = 1.
         
-        # Triple contraint: no 3 consecutive digits in ROW or COLUMN
+        # Triple constraint: no 3 consecutive digits in ROW or COLUMN
         # Balance constraint: the max number of playable digits is half the size of its ROW and COLUMN (rounded up)
         '''This function checks the user inputs and then checks if the game
         constraints hold given the supposed play. Triple constraint is only
@@ -225,31 +251,43 @@ class CommandInterface:
             y = int(args[1]) # row
             # checks for index within bound
             if x not in range(self.width) or y not in range(self.height):
-                raise IndexError
+                print("= illegal move: {} wrong coordinate\n".format(' '.join(args)))
+                return False
             digit = args[2]
+
+            # check if digit is valid (0 or 1)
+            if digit not in ["0", "1"]:
+                print("= illegal move: {} wrong number\n".format(' '.join(args)))
+                return False
+            
+            # check if cell occupied
+            if self.grid[y][x] != ".":
+                print("= illegal move: {} occupied\n".format(' '.join(args)))
+                return False
 
             # only check triples if width is greater than 3
             if self.width > 3:
                 if self.balance(x, y, digit) and self.triple(x, y, digit):
-                    print("yes")
+                    # print("yes")
+                    pass
                 else:
-                    print("no")
+                    # print("no")
+                    return False
             else:
                 if self.balance(x, y, digit):
-                    print("yes")
+                    # print("yes")
+                    pass
                 else:
-                    print("no")
+                    # print("no")
+                    return False
             return True
-        except IndexError:
-            print("Error: Index position out of bounds.")
-            return False
         except TypeError as e:
             print(e)
-            print("Error: Game does not exist.")
+            print("Error: Game does not exist.\n")
             return False
         except Exception as e:
             print(e)
-            print("Error: Invalid arguments for legal command.\nMust be in format: x y digit")
+            print("Error: Invalid arguments for legal command.\nMust be in format: x y digit\n")
             return False
     
     def genmove(self, args):
