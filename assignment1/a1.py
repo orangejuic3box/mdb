@@ -108,8 +108,8 @@ class CommandInterface:
             return False
     
     def play(self, args):
+        # Check if move is legal to place digit on grid
         try:
-            # Check if move is legal to place digit on grid
             if self.legal(args):
                 self.place(args)
                 return True
