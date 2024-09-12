@@ -72,40 +72,20 @@ class CommandInterface:
     #======================================================================================
 
     def game(self, args):
-        # Check if valid integers were given for grid size
-        try:
-            width = int(args[0])
-            height = int(args[1])
+        width = int(args[0])
+        height = int(args[1])
 
-            # If valid grid size, create grid
-            if 1 <= width <= 20 and 1 <= height <= 20:
-                self.grid = [["." for _ in range(width)] for _ in range(height)]
-                self.height = height
-                self.width = width
-                return True
-
-            else:
-                print("Error: Grid width and height must be between 1 and 20.\n")
-                return False
-        
-        # Raise exception if invalid arguments are given for grid size
-        except Exception as e:
-            # print(e)
-            print("Error: Invalid input for grid size.\n")
-            return False
+        # Create grid with user specified width and height
+        self.grid = [["." for _ in range(width)] for _ in range(height)]
+        self.height = height
+        self.width = width
+        return True
     
     def show(self, args):
-        # Display grid if it exists
-        try:
-            for row in self.grid:
-                print("".join(row))
-            return True
-        
-        # Raise exception if no grid exists
-        except Exception as e:
-            print(e)
-            print("Error: No game exists.")
-            return False
+        # Display grid
+        for row in self.grid:
+            print("".join(row))
+        return True
     
     def play(self, args):
         # Check if move is legal to place digit on grid
