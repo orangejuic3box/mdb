@@ -4,6 +4,7 @@
 
 import sys
 import math
+import random
 
 class CommandInterface:
     # The following is already defined and does not need modification
@@ -19,13 +20,14 @@ class CommandInterface:
             "legal" : self.legal,
             "genmove" : self.genmove,
             "winner" : self.winner,
-            "place" : self.place,
-            "griddy" : self.griddy
+            "place" : self.place
+            # "griddy" : self.griddy
         }
         self.grid = None
         self.height = None
         self.width = None
-        # do i set empty self.grid, self.height, self.width??
+        self.player_one = True
+        self.end_of_game = False
 
     # Convert a raw string to a command and a list of arguments
     def process_command(self, str):
@@ -72,6 +74,9 @@ class CommandInterface:
     #======================================================================================
 
     def game(self, args):
+        '''This function initiates a new game on an empty rectangular grid, given by
+        the user, with width n and height m (in the range from 1 and 20). Formatting
+        of the input must be in the format: n m.'''
         width = int(args[0])
         height = int(args[1])
 
@@ -82,16 +87,26 @@ class CommandInterface:
         return True
     
     def show(self, args):
+        '''This function shows the current state of the grid.'''
         # Display grid
         for row in self.grid:
             print("".join(row))
         return True
     
     def play(self, args):
+        '''This function allows players to place a digit (0 or 1) at a given
+        coordinate (x, y). The coordinate x increases from left to right, starting
+        at 0, and y increases from top to bottom, starting at 0. Formatting of
+        a play must be in the format: x y digit.'''
         # Check if move is legal to place digit on grid
         try:
-            if self.legal(args):
+            if self.legal(args) and self.player_one:
                 self.place(args)
+                self.player_one = False
+                return True
+            elif self.legal(args) and not self.player_one:
+                self.place(args)
+                self.player_one = True
                 return True
 
         # Raise exception if illegal move
@@ -112,13 +127,13 @@ class CommandInterface:
         # print("placed")
         return True
     
-    def griddy(self,args):
-        # creates a grid of the given size and just numbers each position increasingly, for testing purposes
-        self.width = int(args[0])
-        self.height = int(args[1])
-        self.grid = [[str((i * self.width) + j )for j in range(self.width)] for i in range(self.height)]
-        # print(self.grid)
-        return True
+    # def griddy(self,args):
+    #     # creates a grid of the given size and just numbers each position increasingly, for testing purposes
+    #     self.width = int(args[0])
+    #     self.height = int(args[1])
+    #     self.grid = [[str((i * self.width) + j )for j in range(self.width)] for i in range(self.height)]
+    #     # print(self.grid)
+    #     return True
 
     def get_row(self,y):
         # returns a List object of the row
@@ -139,8 +154,8 @@ class CommandInterface:
         play (digit) in its row or column for the balance constraint. 
         Returns True or False.'''
         # getting max values for row and column
-        row_max = math.ceil(self.height/2)
-        col_max = math.ceil(self.width/2)
+        row_max = math.ceil(self.width/2)
+        col_max = math.ceil(self.height/2)
         # getting row and column
         row = self.get_row(y)
         col = self.get_col(x)
@@ -148,12 +163,13 @@ class CommandInterface:
         # print("digit", digit)
         # print("row", row, row.count(digit), row_max)
         # print("col", col, col.count(digit), col_max)
-        if row.count(digit) != row_max and col.count(digit) != col_max: #technically count should never be above the max, so checking that its != is the same as checking less than
+        if row.count(digit) < row_max and col.count(digit) < col_max: #technically count should never be above the max, so checking that its != is the same as checking less than
             # print("passed balance check")
             return True
         # print("failed balance check")
-        print("= illegal move: {} {} {} too many {}\n".format(x, y, digit, digit))
-        return False
+        else:
+            print("= illegal move: {} {} {} too many {}\n".format(x, y, digit, digit))
+            return False
 
     def triple(self, x, y, digit):
         # Triple contraint: no 3 consecutive digits in ROW or COLUMN
@@ -262,12 +278,49 @@ class CommandInterface:
             return False
     
     def genmove(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
-        return True
+        try:
+            moves = []
+
+            # Find all legal moves by checking all empty cells
+            for y in range(self.height):
+                for x in range(self.width):
+                    if self.grid[y][x] == ".":
+                        for digit in ["0", "1"]:
+                            # Check if move is legal to place digit on grid
+                            if self.legal([x, y, digit]):
+                                moves.append([x, y, digit])
+            
+            # If no legal moves, resign
+            if len(moves) == 0:
+                print("resign\n")
+                self.end_of_game = True
+                return False
+            
+            # Otherwise, select and play a random legal move
+            move = random.choice(moves)
+            x = str(move[0])
+            y = str(move[1])
+            digit = move[2]
+            self.play([x, y, digit])
+            print("{} {} {}".format(x, y, digit))
+            return True
+        
+        except Exception as e:
+            print("Error: Game does not exist.\n")
+            return False
     
     def winner(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
-        return True
+        '''This function checks if the game is over. If it is, determine which player
+        is the winner.'''
+        if self.player_one and self.end_of_game:
+            print("1")
+            return True
+        elif not self.player_one and self.end_of_game:
+            print("2")
+            return True
+        else:
+            print("unfinished")
+            return True
     
     #======================================================================================
     # End of functions requiring implementation
