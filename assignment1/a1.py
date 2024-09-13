@@ -233,55 +233,55 @@ class CommandInterface:
         constraints hold given the supposed play. Triple constraint is only
         looked at if the width of the grid is greater than 3.'''
         
+       
         try:
             # check if # of args is correct
             if len(args) != 3:
-                print("= illegal move: {} wrong number of arguments\n".format(' '.join(args)))
+                if self.input:
+                    print("= illegal move: {} wrong number of arguments\n".format(' '.join(args)))
                 return False
             
-            x = int(args[0]) # column
-            y = int(args[1]) # row
-            # checks for index within bound
+            x = int(args[0])  # column
+            y = int(args[1])  # row
+            # checks for index within bounds
             if x not in range(self.width) or y not in range(self.height):
-                print("= illegal move: {} wrong coordinate\n".format(' '.join(args)))
+                if self.input:
+                    print("= illegal move: {} wrong coordinate\n".format(' '.join(args)))
                 return False
+            
             digit = args[2]
-
             # check if digit is valid (0 or 1)
             if digit not in ["0", "1"]:
-                print("= illegal move: {} wrong number\n".format(' '.join(args)))
+                if self.input:
+                    print("= illegal move: {} wrong number\n".format(' '.join(args)))
                 return False
             
-            # check if cell occupied
+            # check if cell is occupied
             if self.grid[y][x] != ".":
-                print("= illegal move: {} occupied\n".format(' '.join(args)))
+                if self.input:
+                    print("= illegal move: {} occupied\n".format(' '.join(args)))
                 return False
-
-            # only check triples if width is greater than 3
+            
+            # check triple constraint (if width > 3)
             if self.width > 3:
-                if self.balance(x, y, digit) and self.triple(x, y, digit):
-                    if self.input:
-                        print("yes")
-                else:
+                if not (self.balance(x, y, digit) and self.triple(x, y, digit)):
                     if self.input:
                         print("no")
                     return False
-            else:
-                if self.balance(x, y, digit):
-                    if self.input:
-                        print("yes")
-                else:
-                    if self.input:
-                        print("no")
-                    return False
+            
+            # check balance constraint
+            if not self.balance(x, y, digit):
+                if self.input:
+                    print("no")
+                return False
+            
+            if self.input:
+                print("yes")
             return True
-        except TypeError as e:
-            print(e)
-            print("Error: Game does not exist.\n")
-            return False
+        
         except Exception as e:
-            print(e)
-            print("Error: Invalid arguments for legal command.\nMust be in format: x y digit\n")
+            if self.input:
+                print("Error: Invalid arguments for legal command.\nMust be in format: x y digit\n")
             return False
     
     def genmove(self, args):
