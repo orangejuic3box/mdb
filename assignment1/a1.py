@@ -28,6 +28,7 @@ class CommandInterface:
         self.width = None
         self.player_one = True
         self.end_of_game = False
+        self.input = True
 
     # Convert a raw string to a command and a list of arguments
     def process_command(self, str):
@@ -100,14 +101,18 @@ class CommandInterface:
         a play must be in the format: x y digit.'''
         # Check if move is legal to place digit on grid
         try:
+            self.input = False
             if self.legal(args) and self.player_one:
                 self.place(args)
                 self.player_one = False
-                return True
+                
+                # self.input = True
+                # return True
             elif self.legal(args) and not self.player_one:
                 self.place(args)
                 self.player_one = True
-                return True
+            self.input = True
+            return True
 
         # Raise exception if illegal move
         except Exception as e:
@@ -255,17 +260,19 @@ class CommandInterface:
             # only check triples if width is greater than 3
             if self.width > 3:
                 if self.balance(x, y, digit) and self.triple(x, y, digit):
-                    # print("yes")
-                    pass
+                    if self.input:
+                        print("yes")
                 else:
-                    # print("no")
+                    if self.input:
+                        print("no")
                     return False
             else:
                 if self.balance(x, y, digit):
-                    # print("yes")
-                    pass
+                    if self.input:
+                        print("yes")
                 else:
-                    # print("no")
+                    if self.input:
+                        print("no")
                     return False
             return True
         except TypeError as e:
@@ -280,6 +287,7 @@ class CommandInterface:
     def genmove(self, args):
         try:
             moves = []
+            self.input = False
 
             # Find all legal moves by checking all empty cells
             for y in range(self.height):
@@ -289,7 +297,7 @@ class CommandInterface:
                             # Check if move is legal to place digit on grid
                             if self.legal([x, y, digit]):
                                 moves.append([x, y, digit])
-            
+            self.input = True
             # If no legal moves, resign
             if len(moves) == 0:
                 print("resign\n")
