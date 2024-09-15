@@ -246,16 +246,15 @@ class CommandInterface:
             return False
 
         # only check triples if width or height is greater than 3
-        if self.width > 3 or self.height > 3:
+        if self.width >= 3 or self.height >= 3:
             if self.balance(x, y, digit) and self.triple(x, y, digit):
                 return True
-            elif not self.balance(x, y, digit):
-                if not suppress_errors:
-                    print("= illegal move: {} {} {} too many {}\n".format(x, y, digit, digit))
-                return False
             elif not self.triple(x, y, digit):
                 if not suppress_errors:
                     print("= illegal move: {} {} {} three in a row\n".format(x, y, digit))
+            elif not self.balance(x, y, digit):
+                if not suppress_errors:
+                    print("= illegal move: {} {} {} too many {}\n".format(x, y, digit, digit))
                 return False
         else:
             if self.balance(x, y, digit):
