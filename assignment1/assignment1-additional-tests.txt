@@ -1,0 +1,137 @@
+help
+game
+show
+play
+legal
+genmove
+winner
+exit
+= 1
+#======================================================================
+#prevent three in a row
+
+game 3 3
+= 1
+
+play 0 0 1
+= 1
+
+play 0 1 1
+= 1
+
+play 0 2 1
+= illegal move: 0 2 1 three in a row
+
+#======================================================================
+#unfinished game check
+
+game 2 2
+= 1
+
+play 0 0 1
+= 1
+
+play 0 1 0
+= 1
+
+play 1 0 1
+= 1
+
+play 1 1 0
+= 1
+
+winner
+unfinished
+= 1
+
+#======================================================================
+#Invalid Negative Coordinates
+
+game 4 4
+= 1
+
+play -1 0 1
+= illegal move: -1 0 1 wrong coordinate
+
+play 0 -1 1
+= illegal move: 0 -1 1 wrong coordinate
+
+play 0 0 1
+= 1
+
+
+#======================================================================
+#Occupied Cell
+
+game 3 3
+= 1
+
+play 1 1 1
+= 1
+
+play 1 1 0
+= illegal move: 1 1 0 cell is occupied
+
+#======================================================================
+#Three In A Row (4x4) 
+
+game 4 4
+= 1
+
+play 0 0 1
+= 1
+
+play 0 1 0
+= 1
+
+play 0 2 1
+= 1
+
+play 0 3 1
+= illegal move: 0 3 1 three in a row
+
+#======================================================================
+#Winner 1x1
+
+game 1 1
+= 1
+
+play 0 0 1
+= 1
+
+winner
+1
+= 1
+
+#======================================================================
+#Invalid Moves 5x1 Game
+
+game 5 1
+= 1
+
+play 0 0 1
+= 1
+
+play -1 9 a 1
+= illegal move: -1 9 a 1 wrong number of arguments
+
+play -1 9 a
+= illegal move: -1 9 a wrong coordinate
+
+play 0 0 a
+= illegal move: 0 0 a wrong number
+
+play 0 0 0
+= illegal move: 0 0 0 occupied
+
+play 1 0 1
+= 1
+
+play 2 0 1     
+= illegal move: 2 0 1 three in a row
+
+play 3 0 1
+= 1
+
+play 4 0 1
+= illegal move: 4 0 1 too many 1
