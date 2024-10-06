@@ -4,6 +4,7 @@
 
 import sys
 import random
+import time
 
 class CommandInterface:
 
@@ -273,7 +274,7 @@ class CommandInterface:
         try:
             seconds = int(args[0])
             if 1 <= seconds <= 100:
-                self.time_limit = seconds
+                self.timelimit = seconds
                 return True
             else:
                 print("timelimit must be between 1 and 100")
@@ -284,10 +285,10 @@ class CommandInterface:
     
     # new function to be implemented for assignment 2
     def solve(self, args):
-        import time
+        
 
         start_time = time.time()
-        time_limit = self.time_limit
+        time_limit = self.timelimit
 
         best_move = None
         winner = 'unknown'
@@ -320,26 +321,22 @@ class CommandInterface:
                 winner = str(3 - root_player)
                 best_move = None
                 break
-            elif value == 0:
-                # Continue to next depth
-                pass
-
-            # Increase depth for iterative deepening
-            depth += 1
+            else:
+                # Increase depth for iterative deepening
+                depth += 1
+                continue
 
         if winner == 'unknown':
-            print("unknown")
+                print("unknown")
         else:
             if best_move:
-                print(winner, ' '.join(str(m) for m in best_move))
+                print(winner, f"{best_move[0]} {best_move[1]} {best_move[2]}")
             else:
                 print(winner)
-
         return True
 
 def alphabeta(self, depth, alpha, beta, maximizing_player, start_time, time_limit):
-    import time
-
+    
     # Check for time limit
     if time.time() - start_time >= time_limit:
         return None, None  # Indicate that time limit was exceeded
@@ -357,7 +354,7 @@ def alphabeta(self, depth, alpha, beta, maximizing_player, start_time, time_limi
 
     if depth == 0:
         # Return heuristic evaluation
-        return 0, None  # For now, we can return 0
+        return 0, None  
 
     # Get legal moves
     moves = self.get_legal_moves()
@@ -408,8 +405,8 @@ def alphabeta(self, depth, alpha, beta, maximizing_player, start_time, time_limi
             if v is None:
                 return None, None
             if v < value:
-                value = v
-                if depth == 1:
+                if v < value:
+                    value = v
                     best_move = move
             beta = min(beta, value)
             if alpha >= beta:
@@ -420,19 +417,13 @@ def make_move(self, move):
     x, y, num = int(move[0]), int(move[1]), int(move[2])
     self.board[y][x] = num
     # Update player
-    if self.player == 1:
-        self.player = 2
-    else:
-        self.player = 1
+    self.player = 3 - self.player
 
 def undo_move(self, move):
     x, y, num = int(move[0]), int(move[1]), int(move[2])
     self.board[y][x] = None
     # Update player back
-    if self.player == 1:
-        self.player = 2
-    else:
-        self.player = 1
+    self.player = 3 - self.player
 
 def is_game_over(self):
     return len(self.get_legal_moves()) == 0
