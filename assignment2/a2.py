@@ -284,8 +284,165 @@ class CommandInterface:
     
     # new function to be implemented for assignment 2
     def solve(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
+        import time
+
+        start_time = time.time()
+        time_limit = self.time_limit
+
+        best_move = None
+        winner = 'unknown'
+
+        depth = 1
+        root_player = self.player
+
+        while True:
+            # Check if time limit exceeded
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= time_limit:
+                break
+
+            # Initialize alpha and beta
+            alpha = -float('inf')
+            beta = float('inf')
+
+            # Call alphabeta at current depth
+            value, move = self.alphabeta(depth, alpha, beta, root_player, start_time, time_limit)
+
+            if value is None:
+                # Time limit exceeded during search
+                break
+
+            if value == 1:
+                winner = str(root_player)
+                best_move = move
+                break
+            elif value == -1:
+                winner = str(3 - root_player)
+                best_move = None
+                break
+            elif value == 0:
+                # Continue to next depth
+                pass
+
+            # Increase depth for iterative deepening
+            depth += 1
+
+        if winner == 'unknown':
+            print("unknown")
+        else:
+            if best_move:
+                print(winner, ' '.join(str(m) for m in best_move))
+            else:
+                print(winner)
+
         return True
+
+def alphabeta(self, depth, alpha, beta, maximizing_player, start_time, time_limit):
+    import time
+
+    # Check for time limit
+    if time.time() - start_time >= time_limit:
+        return None, None  # Indicate that time limit was exceeded
+
+    # Check for terminal node
+    if self.is_game_over():
+        # Return evaluation of terminal node
+        winner = self.get_winner()
+        if winner == maximizing_player:
+            return 1, None  # Maximizing player wins
+        elif winner == 3 - maximizing_player:
+            return -1, None  # Opponent wins
+        else:
+            return 0, None  # Draw or unknown
+
+    if depth == 0:
+        # Return heuristic evaluation
+        return 0, None  # For now, we can return 0
+
+    # Get legal moves
+    moves = self.get_legal_moves()
+
+    # If no legal moves, game is over
+    if not moves:
+        winner = self.get_winner()
+        if winner == maximizing_player:
+            return 1, None
+        elif winner == 3 - maximizing_player:
+            return -1, None
+        else:
+            return 0, None
+
+    best_move = None
+
+    if self.player == maximizing_player:
+        # Maximizing player
+        value = -float('inf')
+        for move in moves:
+            # Check time limit
+            if time.time() - start_time >= time_limit:
+                return None, None
+            # Make move
+            self.make_move(move)
+            v, _ = self.alphabeta(depth - 1, alpha, beta, maximizing_player, start_time, time_limit)
+            # Undo move
+            self.undo_move(move)
+            if v is None:
+                return None, None  # Time limit exceeded
+            if v > value:
+                value = v
+                if depth == 1:
+                    best_move = move
+            alpha = max(alpha, value)
+            if alpha >= beta:
+                break  # Beta cut-off
+        return value, best_move
+    else:
+        # Minimizing player
+        value = float('inf')
+        for move in moves:
+            if time.time() - start_time >= time_limit:
+                return None, None
+            self.make_move(move)
+            v, _ = self.alphabeta(depth - 1, alpha, beta, maximizing_player, start_time, time_limit)
+            self.undo_move(move)
+            if v is None:
+                return None, None
+            if v < value:
+                value = v
+                if depth == 1:
+                    best_move = move
+            beta = min(beta, value)
+            if alpha >= beta:
+                break  # Alpha cut-off
+        return value, best_move
+
+def make_move(self, move):
+    x, y, num = int(move[0]), int(move[1]), int(move[2])
+    self.board[y][x] = num
+    # Update player
+    if self.player == 1:
+        self.player = 2
+    else:
+        self.player = 1
+
+def undo_move(self, move):
+    x, y, num = int(move[0]), int(move[1]), int(move[2])
+    self.board[y][x] = None
+    # Update player back
+    if self.player == 1:
+        self.player = 2
+    else:
+        self.player = 1
+
+def is_game_over(self):
+    return len(self.get_legal_moves()) == 0
+
+def get_winner(self):
+    if self.is_game_over():
+        # The player who is not to move wins
+        return 3 - self.player
+    else:
+        return None
     
     #===============================================================================================
     # ɅɅɅɅɅɅɅɅɅɅ END OF ASSIGNMENT 2 FUNCTIONS. ɅɅɅɅɅɅɅɅɅɅ
