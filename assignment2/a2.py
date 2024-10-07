@@ -240,8 +240,6 @@ class CommandInterface:
             print("= illegal move: " + " ".join(args) + " " + reason + "\n")
             return False
         self.board[y][x] = num
-        # print("?")
-        # print(self.ztable)
         self.current_hash ^= self.ztable[y][x][num]
         # print("urp")
         if self.player == 1:
@@ -316,45 +314,11 @@ class CommandInterface:
             print(f"{self.player} {best_move[0]} {best_move[1]} {best_move[2]}")
         if win == False:
             print(3-self.player)
-
-
-
-        # score, best_move = self.negamax(self.player, -float("inf"), float("inf"))
-
-        # if score == "unknown":
-        #     print("unknown")
-        # else:
-        #     if score > 0:
-        #         winner = 1
-        #     elif score < 0:
-        #         winner = 2
-        #     else:
-        #         print("score is 0?")
-        #         winner = "unknown"
-
-        #     if winner == "unknown":
-        #         print("unknown")
-        #     else:
-        #         if winner == og_player: #winner == self.player?
-        #             # player x y num
-        #             print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
-        #         # if best_move:
-        #         #     print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
-        #         else:
-        #             print(winner)
             
         return True
     
     # new function for assignment 2
     def get_code(self):
-        # code = 0
-        # for row in self.board:
-        #     for cell in row:
-        #         if cell is None:
-        #             cell = 0
-        #         code = 2*code + cell
-
-        # board_str = ''.join(str(cell) if cell is not None else '.' for row in self.board for cell in row)
         return self.current_hash
         # return code
     
@@ -419,7 +383,10 @@ class CommandInterface:
                 win = not win
 
             if win == True:
+                self.transposition_table[board_key] = (True, None)
                 return True, move
+            else:
+                self.transposition_table[board_key] = (None, None)
             
         return False, None
 
