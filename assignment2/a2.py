@@ -32,6 +32,8 @@ class CommandInterface:
         #new hashing?
         self.ztable = None
         self.current_hash = 0
+
+        self.count = 0
     
     #===============================================================================================
     # VVVVVVVVVV START of PREDEFINED FUNCTIONS. DO NOT MODIFY. VVVVVVVVVV
@@ -302,34 +304,44 @@ class CommandInterface:
     
     # new function to be implemented for assignment 2
     def solve(self, args):
-        # print(self.player)
-        og_player = self.player
+        # og_player = self.player
         self.transposition_table = {}
         self.start_time = time.time()
 
-        score, best_move = self.negamax(self.player, -float("inf"), float("inf"))
+        win, best_move = self.boolean_negamax(self.player)
 
-        if score == "unknown":
-            print("unknown")
-        else:
-            if score > 0:
-                winner = 1
-            elif score < 0:
-                winner = 2
-            else:
-                print("score is 0?")
-                winner = "unknown"
+        if win == "unknown":
+            print(win)
+        if win == True:
+            print(f"{self.player} {best_move[0]} {best_move[1]} {best_move[2]}")
+        if win == False:
+            print(3-self.player)
 
-            if winner == "unknown":
-                print("unknown")
-            else:
-                if winner == og_player: #winner == self.player?
-                    # player x y num
-                    print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
-                # if best_move:
-                #     print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
-                else:
-                    print(winner)
+
+
+        # score, best_move = self.negamax(self.player, -float("inf"), float("inf"))
+
+        # if score == "unknown":
+        #     print("unknown")
+        # else:
+        #     if score > 0:
+        #         winner = 1
+        #     elif score < 0:
+        #         winner = 2
+        #     else:
+        #         print("score is 0?")
+        #         winner = "unknown"
+
+        #     if winner == "unknown":
+        #         print("unknown")
+        #     else:
+        #         if winner == og_player: #winner == self.player?
+        #             # player x y num
+        #             print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
+        #         # if best_move:
+        #         #     print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
+        #         else:
+        #             print(winner)
             
         return True
     
@@ -360,13 +372,57 @@ class CommandInterface:
         if self.game_over():
             winner = self.winner_is()
             if winner == player:
-                return 10
+                return True#10
             elif winner == 3 - player:
-                return -10
+                return False #-10
             else:
                 return 0
         return 0
     
+    def boolean_negamax(self, player):
+        '''
+        Return:
+            - WINNER (1, 2 or unknown)
+            - BEST MOVE [x, y, num]
+        '''
+        if time.time() - self.start_time > self.time_limit:
+            return "unknown", None
+
+        # get dictionary key
+        board_key = self.get_code()
+
+        # if key exists in table already return the value from the table
+        if board_key in self.transposition_table:
+            return self.transposition_table[board_key], None
+        
+        # grab all legal moves to explore
+        legal_moves = self.get_legal_moves()
+
+        # if there no legal moves left, GAME OVER, return the winner
+        if not legal_moves:
+            return self.evaluate_board(player), None
+
+        for move in legal_moves:
+            # unpack move
+            x, y, num = move
+
+            self.play(move) #self.player switches here
+            self.moves.append((int(x), int(y), int(num)))
+
+            win, _ = self.boolean_negamax(self.player)
+
+            self.undo() #self.player switches here
+
+            if win == "unknown":
+                return "unknown", None
+            else:
+                win = not win
+
+            if win == True:
+                return True, move
+            
+        return False, None
+
     # new function for assignment 2
     def negamax(self, player, alpha, beta):
         '''
