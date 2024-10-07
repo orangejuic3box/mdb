@@ -26,6 +26,8 @@ class CommandInterface:
         self.time_limit = 1
         self.moves = []
         self.transposition_table = {}
+        self.row = 0
+        self.col = 0
     
     #===============================================================================================
     # VVVVVVVVVV START of PREDEFINED FUNCTIONS. DO NOT MODIFY. VVVVVVVVVV
@@ -103,7 +105,8 @@ class CommandInterface:
         if n < 0 or m < 0:
             print("Invalid board size:", n, m, file=sys.stderr)
             return False
-        
+        self.row = n
+        self.col = m
         self.board = []
         for i in range(m):
             self.board.append([None]*n)
@@ -282,6 +285,8 @@ class CommandInterface:
     
     # new function to be implemented for assignment 2
     def solve(self, args):
+        # print(self.player)
+        og_player = self.player
         self.transposition_table = {}
         self.start_time = time.time()
 
@@ -290,8 +295,11 @@ class CommandInterface:
         if winner == "unknown":
             print("unknown")
         else:
-            if best_move:
+            if winner == og_player:
+                # player x y numo
                 print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
+            # if best_move:
+            #     print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
             else:
                 print(winner)
         
@@ -324,7 +332,7 @@ class CommandInterface:
         if not legal_moves:
             self.transposition_table[board_key] = (3 - player, None)
             return 3 - player, None
-        
+
         best_score = -float("inf")
         best_move = None
 
@@ -336,6 +344,12 @@ class CommandInterface:
             self.board[y][x] = num
             self.moves.append((x, y, num))
 
+            print("current player is", self.player)
+            m = self.get_legal_moves()
+            print(len(m), "moves to play")
+            print(m)
+            print()
+
             score, _ = self.negamax(3 - player, -beta, -alpha)
 
             self.undo()
@@ -344,7 +358,7 @@ class CommandInterface:
                 self.transposition_table[board_key] = ("unknown", None)
                 return "unknown", None
             
-            score = -score
+            # score = score
             
             if score > best_score:
                 best_score = score
@@ -353,7 +367,8 @@ class CommandInterface:
             alpha = max(alpha, score)
             if alpha >= beta:
                 break
-
+        # print("CURRENT PLAYER", self.player)
+        # print(self.moves)
         self.transposition_table[board_key] = (best_score, best_move)
         return (best_score, best_move)
     
