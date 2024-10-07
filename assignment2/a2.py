@@ -290,31 +290,40 @@ class CommandInterface:
         self.transposition_table = {}
         self.start_time = time.time()
 
-        winner, best_move = self.negamax(self.player, -float("inf"), float("inf"))
+        score, best_move = self.negamax(self.player, -float("inf"), float("inf"))
 
-        if winner == "unknown":
+        if score == "unknown":
             print("unknown")
         else:
-            if winner == og_player: #winner == self.player?
-                # player x y num
-                print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
-            # if best_move:
-            #     print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
+            if score > 0:
+                winner = 1
+            elif score < 0:
+                winner = 2
             else:
-                print(winner)
-        
+                print("score is 0?")
+                winner = "unknown"
+
+            if winner == "unknown":
+                print("unknown")
+            else:
+                if winner == og_player: #winner == self.player?
+                    # player x y num
+                    print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
+                # if best_move:
+                #     print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
+                else:
+                    print(winner)
+            
         return True
     
     # new function for assignment 2
     def get_code(self):
-        return
-
+        code = 0
         for row in self.board:
             for cell in row:
                 if cell is None:
                     cell = 0
                 code = 2*code + cell
-        
         return code
     
     def game_over(self):
@@ -323,18 +332,20 @@ class CommandInterface:
         return False
     
     def winner_is(self):
-        assert len(self.get_legal_moves()) == 0
-        if self.player == 1:
-            return 2
-        else:
-            return 1
+        if not self.game_over():
+            return None
+        return 3 - self.player
             
-    
-    def evaluate_board(self):
-        if self.winner_is() == self.player:
-            return 10
-        else:
-            return -10
+    def evaluate_board(self, player):
+        if self.game_over():
+            winner = self.winner_is()
+            if winner == player:
+                return 10
+            elif winner == 3 - player:
+                return -10
+            else:
+                return 0
+        return 0
     
     # new function for assignment 2
     def negamax(self, player, alpha, beta):
@@ -351,17 +362,17 @@ class CommandInterface:
 
         # if key exists in table already return the value from the table
         if board_key in self.transposition_table:
-            print("weve been here before")
-            print(self.transposition_table[board_key])
+            # print("weve been here before")
+            # print(self.transposition_table[board_key])
             return self.transposition_table[board_key]
         
-        # otherwise go find out the value
 
         # grab all legal moves to explore
         legal_moves = self.get_legal_moves()
 
         # if there no legal moves left, GAME OVER, return the winner
         if not legal_moves:
+            return self.evaluate_board(player), None
             pass
             # self.transposition_table[board_key] = (3 - player, None)
             # return 3 - player, None
@@ -386,12 +397,12 @@ class CommandInterface:
             # undo the move
             self.undo()
 
-            # if score could not be found out, return unknown
+            # # if score could not be found out, return unknown
             if score == "unknown":
                 # self.transposition_table[board_key] = ("unknown", None)
                 return "unknown", None
-            else:
-                pass
+            # else:
+            #     pass
                 # print("player", self.player)
                 # print("the score for", board_key, "is", score)
             
@@ -414,7 +425,7 @@ class CommandInterface:
         # set the value of the move and score with the board key
         self.transposition_table[board_key] = (best_score, best_move)
         return (best_score, best_move)
-    a
+    
     #===============================================================================================
     # ɅɅɅɅɅɅɅɅɅɅ END OF ASSIGNMENT 2 FUNCTIONS. ɅɅɅɅɅɅɅɅɅɅ
     #===============================================================================================
