@@ -295,8 +295,8 @@ class CommandInterface:
         if winner == "unknown":
             print("unknown")
         else:
-            if winner == og_player:
-                # player x y numo
+            if winner == og_player: #winner == self.player?
+                # player x y num
                 print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
             # if best_move:
             #     print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
@@ -321,54 +321,66 @@ class CommandInterface:
     def negamax(self, player, alpha, beta):
         if time.time() - self.start_time > self.time_limit:
             return "unknown", None
-    
+
+        # get dictionary key
         board_key = self.get_code()
 
+        # if key exists in table already return the value from the table
         if board_key in self.transposition_table:
             return self.transposition_table[board_key]
         
+        # otherwise go find out the value
+
+        # grab all legal moves to explore
         legal_moves = self.get_legal_moves()
 
+        # if there no legal moves left, game is over, return the winner
         if not legal_moves:
             self.transposition_table[board_key] = (3 - player, None)
             return 3 - player, None
 
+        # keep track of best move so far
         best_score = -float("inf")
         best_move = None
 
         for move in legal_moves:
+            # unpack the move
             x = int(move[0])
             y = int(move[1])
             num = int(move[2])
 
+            # play the move
             self.board[y][x] = num
             self.moves.append((x, y, num))
 
-            print("current player is", self.player)
-            m = self.get_legal_moves()
-            print(len(m), "moves to play")
-            print(m)
-            print()
-
+            #find out the value of the move
             score, _ = self.negamax(3 - player, -beta, -alpha)
 
+            # undo the move
             self.undo()
 
+            # if score could not be found out, return unknown
             if score == "unknown":
                 self.transposition_table[board_key] = ("unknown", None)
                 return "unknown", None
             
             # score = score
             
+            # check if this move's score is better than what we've seen
             if score > best_score:
+                # record the score and the move
                 best_score = score
                 best_move = move
 
+            # set alpha to be either current alpha or score if its higher
             alpha = max(alpha, score)
             if alpha >= beta:
+                # prune because alpha is larger than beta and we will never go higher than beta
                 break
         # print("CURRENT PLAYER", self.player)
         # print(self.moves)
+
+        # set the value of the move and score with the board key
         self.transposition_table[board_key] = (best_score, best_move)
         return (best_score, best_move)
     
