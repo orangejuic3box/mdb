@@ -26,8 +26,12 @@ class CommandInterface:
         self.time_limit = 1
         self.moves = []
         self.transposition_table = {}
-        self.row = 0
-        self.col = 0
+        # self.row = 0
+        # self.col = 0
+
+        #new hashing?
+        self.ztable = None
+        self.current_hash = 0
     
     #===============================================================================================
     # VVVVVVVVVV START of PREDEFINED FUNCTIONS. DO NOT MODIFY. VVVVVVVVVV
@@ -98,6 +102,12 @@ class CommandInterface:
     # VVVVVVVVVV START OF ASSIGNMENT 2 FUNCTIONS. ADD/REMOVE/MODIFY AS NEEDED. VVVVVVVV
     #===============================================================================================
 
+    def make_ztable(self, row, col):
+        # 0, 1, 2 (EMPTY/None) -> range(3)
+        # print(row, "rows")
+        # print(col, "columns")
+        self.ztable = [[[random.getrandbits(64) for _ in range(3)] for _ in range(col)] for _ in range(row)]
+
     def game(self, args):
         if not self.arg_check(args, "n m"):
             return False
@@ -105,8 +115,10 @@ class CommandInterface:
         if n < 0 or m < 0:
             print("Invalid board size:", n, m, file=sys.stderr)
             return False
-        self.row = n
-        self.col = m
+        # self.row = m
+        # self.col = n
+        self.make_ztable(m, n)
+        self.current_hash = 0
         self.board = []
         for i in range(m):
             self.board.append([None]*n)
@@ -226,6 +238,10 @@ class CommandInterface:
             print("= illegal move: " + " ".join(args) + " " + reason + "\n")
             return False
         self.board[y][x] = num
+        # print("?")
+        # print(self.ztable)
+        self.current_hash ^= self.ztable[y][x][num]
+        # print("urp")
         if self.player == 1:
             self.player = 2
         else:
@@ -276,6 +292,7 @@ class CommandInterface:
             return
         x, y, num = self.moves.pop()
         self.board[y][x] = None
+        self.current_hash ^= self.ztable[y][x][num]
         self.player = 3 - self.player
     
     # new function to be implemented for assignment 2
@@ -318,13 +335,16 @@ class CommandInterface:
     
     # new function for assignment 2
     def get_code(self):
-        code = 0
-        for row in self.board:
-            for cell in row:
-                if cell is None:
-                    cell = 0
-                code = 2*code + cell
-        return code
+        # code = 0
+        # for row in self.board:
+        #     for cell in row:
+        #         if cell is None:
+        #             cell = 0
+        #         code = 2*code + cell
+
+        # board_str = ''.join(str(cell) if cell is not None else '.' for row in self.board for cell in row)
+        return self.current_hash
+        # return code
     
     def game_over(self):
         if len(self.get_legal_moves()) == 0:
@@ -389,13 +409,16 @@ class CommandInterface:
 
             # play the move
             self.board[y][x] = num
+            self.current_hash ^= self.ztable[y][x][num]
             self.moves.append((x, y, num))
+            # print("---before---PLAYER", self.player, move)
 
             #find out the value of the move
             score, _ = self.negamax(3 - player, -beta, -alpha)
-
+            # print("---after---PLAYER", self.player, move)
             # undo the move
             self.undo()
+            # print("---undo---PLAYER", self.player, move)
 
             # # if score could not be found out, return unknown
             if score == "unknown":
