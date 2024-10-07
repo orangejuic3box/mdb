@@ -366,29 +366,56 @@ class CommandInterface:
         if not legal_moves:
             return self.evaluate_board(player), None
 
+        best_move = None
+        is_won = False
+        
+        printer = False
+
         for move in legal_moves:
             # unpack move
             x, y, num = move
 
             self.play(move) #self.player switches here
             self.moves.append((int(x), int(y), int(num)))
+            '''
+            if move == ["5", "0", "1"]:
+                printer = True'''
 
             win, _ = self.boolean_negamax(self.player)
-
+            '''
+            if printer:
+                print("move was declared to be",win)
+                print(win, "negated to", not win)
+                '''
             self.undo() #self.player switches here
 
             if win == "unknown":
                 return "unknown", None
-            else:
-                win = not win
+            
+            win = not win
 
             if win == True:
-                self.transposition_table[board_key] = (True, None)
-                return True, move
-            else:
-                self.transposition_table[board_key] = (None, None)
-            
-        return False, None
+                '''
+                if printer:
+                    print("win == True evaliated going to break")
+                    printer = False'''
+                is_won = True
+                best_move = move
+                break
+            '''
+            if printer:
+                print("im not sure anymore")
+                printer = False'''
+            #     self.transposition_table[board_key] = (True, None)
+            #     return True, move
+            # else:
+            #     self.transposition_table[board_key] = (False, None)
+            #     # self.transposition_table[board_key] = (None, None)
+
+        # self.transposition_table[board_key] = (False, None)
+
+        self.transposition_table[board_key] = is_won
+        return is_won, best_move
 
     # new function for assignment 2
     def negamax(self, player, alpha, beta):
