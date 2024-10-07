@@ -4,6 +4,7 @@
 
 import sys
 import random
+import time
 
 class CommandInterface:
 
@@ -22,6 +23,9 @@ class CommandInterface:
         }
         self.board = [[None]]
         self.player = 1
+        self.time_limit = 1
+        self.moves = []
+        self.transposition_table = {}
     
     #===============================================================================================
     # VVVVVVVVVV START of PREDEFINED FUNCTIONS. DO NOT MODIFY. VVVVVVVVVV
@@ -264,15 +268,94 @@ class CommandInterface:
             print("unfinished")
         return True
     
+    def undo(self):
+        if not self.moves:
+            return
+        x, y, num = self.moves.pop()
+        self.board[y][x] = None
+        self.player = 3 - self.player
+    
     # new function to be implemented for assignment 2
     def timelimit(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
+        self.time_limit = int(args[0])
         return True
     
     # new function to be implemented for assignment 2
     def solve(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
+        self.transposition_table = {}
+        self.start_time = time.time()
+
+        winner, best_move = self.negamax(self.player, -float("inf"), float("inf"))
+
+        if winner == "unknown":
+            print("unknown")
+        else:
+            if best_move:
+                print(f"{winner} {best_move[0]} {best_move[1]} {best_move[2]}")
+            else:
+                print(winner)
+        
         return True
+    
+    # new function for assignment 2
+    def get_code(self):
+        code = 0
+
+        for row in self.board:
+            for cell in row:
+                if cell is None:
+                    cell = 0
+                code = 2*code + cell
+        
+        return code
+    
+    # new function for assignment 2
+    def negamax(self, player, alpha, beta):
+        if time.time() - self.start_time > self.time_limit:
+            return "unknown", None
+    
+        board_key = self.get_code()
+
+        if board_key in self.transposition_table:
+            return self.transposition_table[board_key]
+        
+        legal_moves = self.get_legal_moves()
+
+        if not legal_moves:
+            self.transposition_table[board_key] = (3 - player, None)
+            return 3 - player, None
+        
+        best_score = -float("inf")
+        best_move = None
+
+        for move in legal_moves:
+            x = int(move[0])
+            y = int(move[1])
+            num = int(move[2])
+
+            self.board[y][x] = num
+            self.moves.append((x, y, num))
+
+            score, _ = self.negamax(3 - player, -beta, -alpha)
+
+            self.undo()
+
+            if score == "unknown":
+                self.transposition_table[board_key] = ("unknown", None)
+                return "unknown", None
+            
+            score = score
+            
+            if score > best_score:
+                best_score = score
+                best_move = move
+
+            alpha = max(alpha, score)
+            if alpha >= beta:
+                break
+
+        self.transposition_table[board_key] = (best_score, best_move)
+        return (best_score, best_move)
     
     #===============================================================================================
     # ɅɅɅɅɅɅɅɅɅɅ END OF ASSIGNMENT 2 FUNCTIONS. ɅɅɅɅɅɅɅɅɅɅ
