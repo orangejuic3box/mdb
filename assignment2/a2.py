@@ -308,8 +308,8 @@ class CommandInterface:
         self.transposition_table = {}
         self.start_time = time.time()
 
+        ####### BOOLEAN NEGAMAX
         win, best_move = self.boolean_negamax(self.player)
-
         if win == "unknown":
             print(win)
         if win == True:
@@ -317,10 +317,23 @@ class CommandInterface:
         if win == False:
             print(3-self.player)
 
-
-
+        ####### MINIMAX
+        # win, best_move = self.solve_for_one()
+        # if win == "unknown":
+        #     print(win)
+        # if self.player == 1:
+        #     if win == True:
+        #         print(f"{self.player} {best_move[0]} {best_move[1]} {best_move[2]}")
+        #     if win == False:
+        #         print(3-self.player)
+        # else: #player is 2
+        #     if win == False:
+        #         print(f"{self.player} {best_move[0]} {best_move[1]} {best_move[2]}")
+        #     if win == True:
+        #         print(3-self.player)
+       
+        ####### NEGAMAX ALPHA BETA
         # score, best_move = self.negamax(self.player, -float("inf"), float("inf"))
-
         # if score == "unknown":
         #     print("unknown")
         # else:
@@ -367,7 +380,64 @@ class CommandInterface:
         if not self.game_over():
             return None
         return 3 - self.player
-            
+    
+    def solve_for_one(self):
+        win = False
+        if self.player == 1:
+            win = self.mini_or()
+        else:
+            win = self.mini_and()
+        return win
+
+    def mini_or(self):
+        if time.time() - self.start_time > self.time_limit:
+            return "unknown", None
+        assert self.player == 1
+        
+        # get dictionary key
+        board_key = self.get_code()
+        # if key exists in table already return the value from the table
+        if board_key in self.transposition_table:
+            return self.transposition_table[board_key], None
+        
+        if self.game_over():
+            # no more moves for current player
+            return 3 - self.player #opponent wins
+        for move in self.get_legal_moves():
+            x, y, num = move
+            self.play(move) #switches players
+            self.moves.append((int(x), int(y), int(num)))
+            is_win, _ = self.mini_and()
+            self.undo()
+            if is_win == "unknown":
+                return "unknown", None
+            if is_win:
+                return True, move
+        return False, None
+
+    def mini_and(self):
+        if time.time() - self.start_time > self.time_limit:
+            return "unknown", None
+        assert self.player == 2
+        
+        # get dictionary key
+        board_key = self.get_code()
+        # if key exists in table already return the value from the table
+        if board_key in self.transposition_table:
+            return self.transposition_table[board_key], None
+        
+        if self.game_over():
+            return 3 - self.player
+        for move in self.get_legal_moves():
+            self.play(move) #switches players
+            is_loss, _ = self.mini_or()
+            self.undo()
+            if is_loss == "unknown":
+                return "unknown", None
+            if is_loss:
+                return False, move
+        return True, None
+
     def evaluate_board(self, player):
         if self.game_over():
             winner = self.winner_is()
@@ -406,9 +476,9 @@ class CommandInterface:
             # unpack move
             x, y, num = move
 
-            self.play(move) #self.player switches here
             self.moves.append((int(x), int(y), int(num)))
-
+            self.play(move) #self.player switches here
+            self.player = 3 - self.player
             win, _ = self.boolean_negamax(self.player)
 
             self.undo() #self.player switches here
@@ -419,8 +489,13 @@ class CommandInterface:
                 win = not win
 
             if win == True:
+                self.transposition_table[board_key] = (True, move)
                 return True, move
+            else:
+                self.transposition_table[board_key] = (False, move)
+                # return False, move
             
+        self.transposition_table[board_key] = (False, move)
         return False, None
 
     # new function for assignment 2
