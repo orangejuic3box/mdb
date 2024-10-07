@@ -344,7 +344,7 @@ class CommandInterface:
                 self.transposition_table[board_key] = ("unknown", None)
                 return "unknown", None
             
-            score = score
+            score = -score
             
             if score > best_score:
                 best_score = score
