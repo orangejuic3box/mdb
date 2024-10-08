@@ -139,7 +139,7 @@ class CommandInterface:
             print()                    
         return True
 
-    def is_legal_reason_old(self, x, y, num):
+    def is_legal_reason(self, x, y, num):
         if self.board[y][x] is not None:
             return False, "occupied"
         
@@ -175,7 +175,7 @@ class CommandInterface:
         self.board[y][x] = None
         return True, ""
     
-    def is_legal_reason(self, x, y, num):
+    def is_legal_reason_new(self, x, y, num):
         if self.board[y][x] is not None:
             return False, "occupied"
         triple = self.triple(x, y, str(num))
@@ -254,7 +254,7 @@ class CommandInterface:
             # print("= illegal move: {} {} {} too many {}\n".format(x, y, digit, digit))
             return False
         
-    def is_legal(self, x, y, num):
+    def is_legal_new(self, x, y, num):
         if self.board[y][x] is not None:
             return False
         triple = self.triple(x, y, str(num))
@@ -263,7 +263,7 @@ class CommandInterface:
             return False
         return True
 
-    def is_lega_old(self, x, y, num):
+    def is_legal(self, x, y, num):
         if self.board[y][x] is not None:
             return False
         
@@ -486,3 +486,8 @@ class CommandInterface:
 if __name__ == "__main__":
     interface = CommandInterface()
     interface.main_loop()
+
+    #testing
+    # print("test")
+    # interface.process_command("game 6 4")
+    # print("test over")
