@@ -5,6 +5,7 @@
 import sys
 import random
 import time
+import cProfile
 
 class CommandInterface:
 
@@ -26,15 +27,10 @@ class CommandInterface:
         self.time_limit = 1
         self.moves = []
         self.transposition_table = {}
-        # self.row = 0
-        # self.col = 0
 
         #new hashing?
         self.ztable = None
-        self.current_hash = 0
-
-        self.count = 0
-    
+        self.current_hash = 0    
     #===============================================================================================
     # VVVVVVVVVV START of PREDEFINED FUNCTIONS. DO NOT MODIFY. VVVVVVVVVV
     #===============================================================================================
@@ -117,13 +113,14 @@ class CommandInterface:
         if n < 0 or m < 0:
             print("Invalid board size:", n, m, file=sys.stderr)
             return False
-        # self.row = m
-        # self.col = n
+
         self.make_ztable(m, n)
         self.current_hash = 0
+
         self.board = []
         for i in range(m):
             self.board.append([None]*n)
+
         self.player = 1
         return True
     
@@ -317,11 +314,7 @@ class CommandInterface:
             
         return True
     
-    # new function for assignment 2
-    def get_code(self):
-        return self.current_hash
-        # return code
-    
+    # functions for assignment 2
     def game_over(self):
         if len(self.get_legal_moves()) == 0:
             return True
@@ -353,7 +346,7 @@ class CommandInterface:
             return "unknown", None
 
         # get dictionary key
-        board_key = self.get_code()
+        board_key = self.current_hash
 
         # if key exists in table already return the value from the table
         if board_key in self.transposition_table:
@@ -369,24 +362,15 @@ class CommandInterface:
         best_move = None
         is_won = False
         
-        printer = False
-
         for move in legal_moves:
             # unpack move
             x, y, num = move
 
             self.play(move) #self.player switches here
             self.moves.append((int(x), int(y), int(num)))
-            '''
-            if move == ["5", "0", "1"]:
-                printer = True'''
 
             win, _ = self.boolean_negamax(self.player)
-            '''
-            if printer:
-                print("move was declared to be",win)
-                print(win, "negated to", not win)
-                '''
+
             self.undo() #self.player switches here
 
             if win == "unknown":
@@ -395,110 +379,13 @@ class CommandInterface:
             win = not win
 
             if win == True:
-                '''
-                if printer:
-                    print("win == True evaliated going to break")
-                    printer = False'''
                 is_won = True
                 best_move = move
                 break
-            '''
-            if printer:
-                print("im not sure anymore")
-                printer = False'''
-            #     self.transposition_table[board_key] = (True, None)
-            #     return True, move
-            # else:
-            #     self.transposition_table[board_key] = (False, None)
-            #     # self.transposition_table[board_key] = (None, None)
-
-        # self.transposition_table[board_key] = (False, None)
 
         self.transposition_table[board_key] = is_won
         return is_won, best_move
 
-    # new function for assignment 2
-    def negamax(self, player, alpha, beta):
-        '''
-        Return:
-            - WINNER (1, 2 or unknown)
-            - BEST MOVE [x, y, num]
-        '''
-        if time.time() - self.start_time > self.time_limit:
-            return "unknown", None
-
-        # get dictionary key
-        board_key = self.get_code()
-
-        # if key exists in table already return the value from the table
-        if board_key in self.transposition_table:
-            # print("weve been here before")
-            # print(self.transposition_table[board_key])
-            return self.transposition_table[board_key]
-        
-
-        # grab all legal moves to explore
-        legal_moves = self.get_legal_moves()
-
-        # if there no legal moves left, GAME OVER, return the winner
-        if not legal_moves:
-            return self.evaluate_board(player), None
-            pass
-            # self.transposition_table[board_key] = (3 - player, None)
-            # return 3 - player, None
-
-        # keep track of best move so far
-        best_score = -float("inf")
-        best_move = None
-
-        for move in legal_moves:
-            # unpack the move
-            x = int(move[0])
-            y = int(move[1])
-            num = int(move[2])
-
-            # play the move
-            self.board[y][x] = num
-            self.current_hash ^= self.ztable[y][x][num]
-            self.moves.append((x, y, num))
-            # print("---before---PLAYER", self.player, move)
-
-            #find out the value of the move
-            score, _ = self.negamax(3 - player, -beta, -alpha)
-            # print("---after---PLAYER", self.player, move)
-            # undo the move
-            self.undo()
-            # print("---undo---PLAYER", self.player, move)
-
-            # # if score could not be found out, return unknown
-            if score == "unknown":
-                # self.transposition_table[board_key] = ("unknown", None)
-                return "unknown", None
-            # else:
-            #     pass
-                # print("player", self.player)
-                # print("the score for", board_key, "is", score)
-            
-            score = -score
-            
-            # check if this move's score is better than what we've seen
-            if score > best_score:
-                # record the score and the move
-                best_score = score
-                best_move = move
-
-            # set alpha to be either current alpha or score if its higher
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                # prune because alpha is larger than beta and we will never go higher than beta
-                break
-        # print("CURRENT PLAYER", self.player)
-        # print(self.moves)
-
-        # set the value of the move and score with the board key
-        self.transposition_table[board_key] = (best_score, best_move)
-        return (best_score, best_move)
-    
     #===============================================================================================
     # ɅɅɅɅɅɅɅɅɅɅ END OF ASSIGNMENT 2 FUNCTIONS. ɅɅɅɅɅɅɅɅɅɅ
     #===============================================================================================
