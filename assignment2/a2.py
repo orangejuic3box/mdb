@@ -6,6 +6,7 @@ import sys
 import random
 import time
 import cProfile
+import math
 
 class CommandInterface:
 
@@ -27,6 +28,9 @@ class CommandInterface:
         self.time_limit = 1
         self.moves = []
         self.transposition_table = {}
+
+        self.width = 0
+        self.height =0
 
         #new hashing?
         self.ztable = None
@@ -116,7 +120,8 @@ class CommandInterface:
 
         self.make_ztable(m, n)
         self.current_hash = 0
-
+        self.width = n
+        self.height = m
         self.board = []
         for i in range(m):
             self.board.append([None]*n)
@@ -134,7 +139,7 @@ class CommandInterface:
             print()                    
         return True
 
-    def is_legal_reason(self, x, y, num):
+    def is_legal_reason_old(self, x, y, num):
         if self.board[y][x] is not None:
             return False, "occupied"
         
@@ -147,7 +152,7 @@ class CommandInterface:
                 consecutive += 1
                 if consecutive >= 3:
                     self.board[y][x] = None
-                    return False, "three in a row"
+                    return False, "three in a col"
             else:
                 consecutive = 0
         too_many = count > len(self.board) // 2 + len(self.board) % 2
@@ -170,7 +175,95 @@ class CommandInterface:
         self.board[y][x] = None
         return True, ""
     
+    def is_legal_reason(self, x, y, num):
+        if self.board[y][x] is not None:
+            return False, "occupied"
+        triple = self.triple(x, y, str(num))
+        balance = self.balance(x, y, num)
+        if triple == False:
+            return False, "triple constraint"
+        if balance == False:
+            return False, "balance constraint"
+        return True, ""
+    
+    def get_row(self,y):
+        # returns a List object of the row
+        row = self.board[y]
+        return row
+    
+    def get_col(self,x):
+        # returns a List object of the column
+        col = []
+        for j in range(self.height):
+            col.append(self.board[j][x])
+        return col
+    
+    def triple(self, x, y, digit):
+        # Triple contraint: no 3 consecutive digits in ROW or COLUMN
+        row = ''
+        col = ''
+        for i in range(-2, 3):
+            # inserts supposed play (digit) into the row and column to be checked
+            if i == 0:
+                # print("zero")
+                row += digit
+                col += digit
+            # gets the value from the current grid in position
+            else:
+                # print("i is", i)
+                try:
+                    if x+i >=0:
+                        if self.board[y][x+i] == None:
+                            row += "."
+                        else:
+                            row += str(self.board[y][x+i])
+                except IndexError:
+                    # print("row failed")
+                    pass
+                except Exception as e:
+                    print("row",e)
+                try:
+                    if y+i >=0:
+                        if self.board[y+i][x] == None:
+                            col += "."
+                        else:
+                            col += str(self.board[y+i][x])
+                except IndexError:
+                    pass
+                except Exception as e:
+                    print("colum",e)
+        check = digit*3
+        if check in row or check in col:
+            # print("invalid play for 3's")
+            # print("= illegal move: {} {} {} three in a row\n".format(x, y, digit))
+            return False
+        return True
+
+    def balance(self, x, y, digit):
+        # Balance constraint: the max number of playable digits is half the size of its ROW and COLUMN (rounded up)
+        # getting max values for row and column
+        row_max = math.ceil(self.width/2)
+        col_max = math.ceil(self.height/2)
+        # getting row and column
+        row = self.get_row(y)
+        col = self.get_col(x)
+        # checking balance
+        if row.count(digit) < row_max and col.count(digit) < col_max: #technically count should never be above the max, so checking that its != is the same as checking less than
+            return True
+        else:
+            # print("= illegal move: {} {} {} too many {}\n".format(x, y, digit, digit))
+            return False
+        
     def is_legal(self, x, y, num):
+        if self.board[y][x] is not None:
+            return False
+        triple = self.triple(x, y, str(num))
+        balance = self.balance(x, y, num)
+        if triple == False or balance == False:
+            return False
+        return True
+
+    def is_lega_old(self, x, y, num):
         if self.board[y][x] is not None:
             return False
         
