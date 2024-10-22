@@ -4,6 +4,7 @@
 
 import sys
 import random
+import os
 
 class CommandInterface:
 
@@ -22,6 +23,7 @@ class CommandInterface:
         }
         self.board = [[None]]
         self.player = 1
+        self.patterns = {}
     
     #===============================================================================================
     # VVVVVVVVVV START of PREDEFINED FUNCTIONS. DO NOT MODIFY. VVVVVVVVVV
@@ -266,11 +268,50 @@ class CommandInterface:
     
     # new function to be implemented for assignment 3
     def loadpatterns(self, args):
-        raise NotImplementedError("This command is not yet implemented.")
+        '''
+        First, delete all existing patterns in your program. 
+        Then, load all the new patterns from the file given by filename, 
+        and use all these patterns for your policy from now on. 
+        When your program first starts up, there should be no patterns loaded.
+        '''
+        try:
+            assert len(args) == 1
+            filename = args[0]
+            with open(filename, "r") as f:
+                # only clear patterns if filename was valid
+                self.patterns = {}
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("#") or not line:
+                        continue  # Ignore comments and empty lines
+                    parts = line.split()
+                    if len(parts) == 3:
+                        pattern, move, weight = parts
+                        print(pattern, move, weight)
+                        if pattern in self.patterns:
+                            self.patterns[pattern].append([move, weight])
+                        else:
+                            self.patterns[pattern] = [ [move, weight] ]
+                    #error checking
+                    #else:
+                        #print(f"Skipping malformed line: {line}")
+        except FileNotFoundError:
+            print(f"Error: File '{filename}' not found.")
+        except AssertionError:
+            print("Error: expected 1 argument, got", len(args), "instead")
+        except Exception as e:
+            print(e)
         return True
     
     # new function to be implemented for assignment 3
     def policy_moves(self, args):
+        '''
+        This command should print a sorted list of all legal moves and their probabilities, 
+        rounded to at most three digits after the decimal point, 
+        for the current simulation policy in the format
+        move1 prob1 move2 prob2 ... ... moven probn
+        x y digit prob x y digit prob
+        '''
         raise NotImplementedError("This command is not yet implemented.")
         return True
     
