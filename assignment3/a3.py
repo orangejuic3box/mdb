@@ -288,9 +288,9 @@ class CommandInterface:
                     if len(parts) == 3:
                         pattern, move, weight = parts
                         if pattern in self.patterns:
-                            self.patterns[pattern][move] = int(weight)
+                            self.patterns[pattern][move] = int(weight) # adding this move and weight to the pattern
                         else:
-                            self.patterns[pattern] = { move : int(weight) }
+                            self.patterns[pattern] = { move : int(weight) } # nested dictionary!!!!
                     #error checking
                     #else:
                         #print(f"Skipping malformed line: {line}")
@@ -347,35 +347,37 @@ class CommandInterface:
         x y digit prob x y digit prob
         '''
         moves = self.get_legal_moves()
-        # print(moves)
-        weights = {}
+        weights = {} #dictionary because moves have to be sorted, key is str version of the listed move, value is weight
         total = 0
         for move in moves:
+            #generates the row and column pattern for the given (x,y) coordinate
             row_pat, col_pat = self.get_pattern(int(move[0]), int(move[1]))
+            #reverse each pattern so we can see in all directions
             row_reversed = row_pat[::-1]
             col_reversed = col_pat[::-1] 
+            #list of listed row patterns and listed column patterns for for loop formatting (tongue twister)
             possible_patterns = [[row_pat, row_reversed], [col_pat, col_reversed]]
             weight = 0
             for rowcol in possible_patterns:
-                flag = True
+                flag = True #for default weight
                 for p in rowcol:
                     if p in self.patterns:
-                        flag = False
+                        flag = False #no longer degault weight
                         weight += self.patterns[p][move[2]]
                         break #break if its the first one
-                if flag:
+                if flag: #default weight if neither pattern was in the row or col
                     weight += 10
             total += weight
             weights[str(move)] = weight
-
+        #sorts moves based on x then y then digit
         sorted_moves = sorted(moves, key=lambda x: (int(x[0]), int(x[1]), int(x[2])))
-
         str_prtout = ""
         for i in range(len(moves)):
+            #grabs move weight and divides by total
+            #then adds move and probability to the string for printout
             move = sorted_moves[i]
             x, y, digit = move
             prob = weights[str(move)]/total
-            # print(x, y, digit, prob)
             prob = str(round(prob, 3))
             str_prtout += x + " " + y + " " + digit + " " + prob + " "
         print(str_prtout.rstrip())
