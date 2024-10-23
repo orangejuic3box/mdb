@@ -300,21 +300,19 @@ class CommandInterface:
             print("Error: expected 1 argument, got", len(args), "instead")
         except Exception as e:
             print(e)
-        print(self.patterns)
+        # print(self.patterns)
         return True
     
     def get_pattern(self,x, y):
+        '''
+        This function gets the surrounded 5 length pattern such that
+        the middle of the pattern is the x,y coordinate.
+        Altered code from A1 from the triplet function.
+        '''
         row = ''
         col = ''
         # print(x, y)
         for i in range(-2, 3):
-            # print("i is", i)
-            # inserts supposed play (digit) into the row and column to be checked
-            # if i == 0:
-            #     row += digit
-            #     col += digit
-            # gets the value from the current grid in position
-            # else:
             try:
                 if x+i < 0:
                     raise IndexError
@@ -349,7 +347,9 @@ class CommandInterface:
         x y digit prob x y digit prob
         '''
         moves = self.get_legal_moves()
-        weights = []
+        # print(moves)
+        weights = {}
+        total = 0
         for move in moves:
             row_pat, col_pat = self.get_pattern(int(move[0]), int(move[1]))
             row_reversed = row_pat[::-1]
@@ -365,12 +365,18 @@ class CommandInterface:
                         break #break if its the first one
                 if flag:
                     weight += 10
-            weights.append(weight)
-        total = sum(weights)
+            total += weight
+            weights[str(move)] = weight
+
+        sorted_moves = sorted(moves, key=lambda x: (int(x[0]), int(x[1]), int(x[2])))
+
         str_prtout = ""
         for i in range(len(moves)):
-            x, y, digit = moves[i]
-            prob = str(round(weights[i]/total, 3))
+            move = sorted_moves[i]
+            x, y, digit = move
+            prob = weights[str(move)]/total
+            # print(x, y, digit, prob)
+            prob = str(round(prob, 3))
             str_prtout += x + " " + y + " " + digit + " " + prob + " "
         print(str_prtout.rstrip())
         return True
