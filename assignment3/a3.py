@@ -287,11 +287,10 @@ class CommandInterface:
                     parts = line.split()
                     if len(parts) == 3:
                         pattern, move, weight = parts
-                        print(pattern, move, weight)
                         if pattern in self.patterns:
-                            self.patterns[pattern].append([move, weight])
+                            self.patterns[pattern][move] = int(weight)
                         else:
-                            self.patterns[pattern] = [ [move, weight] ]
+                            self.patterns[pattern] = { move : int(weight) }
                     #error checking
                     #else:
                         #print(f"Skipping malformed line: {line}")
@@ -301,8 +300,45 @@ class CommandInterface:
             print("Error: expected 1 argument, got", len(args), "instead")
         except Exception as e:
             print(e)
+        print(self.patterns)
         return True
     
+    def get_pattern(self,x, y):
+        row = ''
+        col = ''
+        # print(x, y)
+        for i in range(-2, 3):
+            # print("i is", i)
+            # inserts supposed play (digit) into the row and column to be checked
+            # if i == 0:
+            #     row += digit
+            #     col += digit
+            # gets the value from the current grid in position
+            # else:
+            try:
+                if x+i < 0:
+                    raise IndexError
+                pos = self.board[y][x+i]
+                if pos == None:
+                    row += "."
+                else:
+                    row += str(pos)
+            except IndexError:
+                row += "X"
+            try:
+                if y+i < 0:
+                    raise IndexError
+                pos = self.board[y+i][x]
+                if pos == None:
+                    col += "."
+                else:
+                    col += str(pos)
+            except IndexError:
+                col += "X"
+        # print("ROW PATTERN:", row)
+        # print("COL PATTERN:", col)
+        return row, col
+
     # new function to be implemented for assignment 3
     def policy_moves(self, args):
         '''
@@ -312,7 +348,31 @@ class CommandInterface:
         move1 prob1 move2 prob2 ... ... moven probn
         x y digit prob x y digit prob
         '''
-        raise NotImplementedError("This command is not yet implemented.")
+        moves = self.get_legal_moves()
+        weights = []
+        for move in moves:
+            row_pat, col_pat = self.get_pattern(int(move[0]), int(move[1]))
+            row_reversed = row_pat[::-1]
+            col_reversed = col_pat[::-1] 
+            possible_patterns = [[row_pat, row_reversed], [col_pat, col_reversed]]
+            weight = 0
+            for rowcol in possible_patterns:
+                flag = True
+                for p in rowcol:
+                    if p in self.patterns:
+                        flag = False
+                        weight += self.patterns[p][move[2]]
+                        break #break if its the first one
+                if flag:
+                    weight += 10
+            weights.append(weight)
+        total = sum(weights)
+        str_prtout = ""
+        for i in range(len(moves)):
+            x, y, digit = moves[i]
+            prob = str(round(weights[i]/total, 3))
+            str_prtout += x + " " + y + " " + digit + " " + prob + " "
+        print(str_prtout.rstrip())
         return True
     
     #===============================================================================================
