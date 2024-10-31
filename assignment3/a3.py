@@ -364,9 +364,11 @@ class CommandInterface:
                     if p in self.patterns:
                         flag = False #no longer degault weight
                         weight += self.patterns[p][move[2]]
+                        # print(f"matched pattern: {p}, move: {move}, weight: {self.patterns[p][move[2]]}")
                         break #break if its the first one
                 if flag: #default weight if neither pattern was in the row or col
                     weight += 10
+                    # print(f"default weight applied for move: {move}, weight: 10")
             total += weight
             weights[str(move)] = weight
         #sorts moves based on x then y then digit
