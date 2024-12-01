@@ -5,9 +5,11 @@
 import sys
 import random
 import signal
+import time
 
 # Custom time out exception
 class TimeoutException(Exception):
+    print("maggie is in timeout smh")
     pass
 
 # Function that is called when we reach the time limit
@@ -32,6 +34,7 @@ class CommandInterface:
         self.player = 1
         self.max_genmove_time = 1
         signal.signal(signal.SIGALRM, handle_alarm)
+        self.start_time
 
     #====================================================================================================================
     # VVVVVVVVVV Start of predefined functions. You may modify, but make sure not to break the functionality. VVVVVVVVVV
@@ -291,6 +294,7 @@ class CommandInterface:
     def genmove(self, args):
         try:
             # Set the time limit alarm
+            self.start_time = time.time()
             signal.alarm(self.max_genmove_time)
             
             # Modify the following to give better moves than random play 
@@ -333,7 +337,6 @@ class CommandInterface:
                 rand_move = moves[random.randint(0, len(moves) - 1)]
                 self.play(rand_move)
                 print(" ".join(rand_move))
-
 
 
             # Disable the time limit alarm 
