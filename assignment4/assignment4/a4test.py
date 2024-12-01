@@ -179,7 +179,6 @@ def load_player(proc_name):
             raise Exception("Program exited with return code: "+str(proc.poll()))
         return proc
     except Exception as e:
-        print(e)
         print("Failed to start " + proc_name)
         sys.exit()
         return None
@@ -234,14 +233,10 @@ def play_game(student_player):
         if student_to_play:
             print("Student program to play:")
             passed, received = play_game_send_command(student_tup, "genmove")
-            print("huh")
             move = received.split("\n")[0]
-            print(move)
             if not passed or "resign" in move or not check_legal_move(move):
-                print(move)
                 return opponent_as_player
             play_game_send_command(opponent_tup, "play "+move)
-            print("fired")
         else:
             print("Opponent program to play:")
             _, received = play_game_send_command(opponent_tup, "genmove")
