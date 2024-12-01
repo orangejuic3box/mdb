@@ -34,7 +34,7 @@ class CommandInterface:
         self.player = 1
         self.max_genmove_time = 1
         signal.signal(signal.SIGALRM, handle_alarm)
-        self.start_time
+        self.start_time = None
 
     #====================================================================================================================
     # VVVVVVVVVV Start of predefined functions. You may modify, but make sure not to break the functionality. VVVVVVVVVV
@@ -292,11 +292,16 @@ class CommandInterface:
         return score
 
     def genmove(self, args):
+        print(self.max_genmove_time, "MAX TIME LIMIT PLS")
+        print("ayo")
+        print("did we even fcking make it")
+        print("bro")
+        print(self.max_genmove_time, "MAX TIME LIMIT PLS")
+        # Set the time limit alarm
+        # self.start_time = time.time()
+        print(self.max_genmove_time, "MAX TIME LIMIT IN THE TRY BLOCK")
+        signal.alarm(self.max_genmove_time)
         try:
-            # Set the time limit alarm
-            self.start_time = time.time()
-            signal.alarm(self.max_genmove_time)
-            
             # Modify the following to give better moves than random play 
             moves = self.get_legal_moves()
             if len(moves) == 0:
@@ -330,6 +335,7 @@ class CommandInterface:
                 # Stop if time running out?
 
             if best_move:
+                print("best move for p", self.player, "is", best_move)
                 self.play(best_move)
                 print(" ".join(best_move))
             else:
@@ -344,6 +350,7 @@ class CommandInterface:
 
         except TimeoutException:
             # This block of code runs when the time limit is reached
+            print("timeout goodbye")
             print("resign")
 
         return True
@@ -354,4 +361,4 @@ class CommandInterface:
     
 if __name__ == "__main__":
     interface = CommandInterface()
-    interface.main_loop()
+    interface.main_loop() 
