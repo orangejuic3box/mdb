@@ -231,6 +231,65 @@ class CommandInterface:
     #===============================================================================================
     # VVVVVVVVVV Start of Assignment 4 functions. Add/modify as needed. VVVVVVVV
     #===============================================================================================
+    def boolean_negamax(self, depth):
+        if depth == 0:
+            return False  # Cannot guarantee a win at this depth limit
+
+        board_hash = self.hash_board()
+        if board_hash in self.transposition_table:
+            return self.transposition_table[board_hash]
+
+        if len(self.get_legal_moves()) == 0:
+            # No moves left, current player loses
+            self.transposition_table[board_hash] = False
+            return False
+
+        moves = self.get_legal_moves()
+        moves.sort(key=lambda move: self.evaluate_move_priority(move), reverse=True)
+
+        for move in moves:
+            self.make_move(move)
+            result = not self.boolean_negamax(depth - 1)
+            self.undo_move(move)
+            if result:
+                self.transposition_table[board_hash] = True
+                return True
+
+        self.transposition_table[board_hash] = False
+        return False
+
+    def make_move(self, move):
+        x, y, num = int(move[0]), int(move[1]), int(move[2])
+        self.board[y][x] = num
+
+    def undo_move(self, move):
+        x, y, num = int(move[0]), int(move[1]), int(move[2])
+        self.board[y][x] = None
+
+    def hash_board(self):
+        return str(self.board)
+
+    def evaluate_move_priority(self, move):
+        x, y, num = int(move[0]), int(move[1]), int(move[2])
+        score = 0
+
+        # Center Control (Encourage staying close to the center)
+        center_x, center_y = len(self.board[0]) // 2, len(self.board) // 2
+        if x == center_x and y == center_y:
+            score += 10
+        elif abs(x - center_x) <= 1 and abs(y - center_y) <= 1:
+            score += 5  # Reward for being close to the center
+
+        # Prefer balanced moves
+        zeros = sum(row.count(0) for row in self.board)
+        ones = sum(row.count(1) for row in self.board)
+        imbalance = abs(zeros - ones)
+        score -= imbalance ** 1.5  # Exponentially scale penalty for imbalance
+
+        return score
+
+
+
 
     def genmove(self, args):
         try:
@@ -241,11 +300,44 @@ class CommandInterface:
             moves = self.get_legal_moves()
             if len(moves) == 0:
                 print("resign")
+                return True
+            best_move = None
+            depth = 1
+
+            while True:
+                curr_best_move = None
+
+                self.transposition_table = {}
+
+                moves.sort(key=lambda move: self.evaluate_move_priority(move), reverse=True)
+
+                for move in moves:
+                    self.make_move(move)
+                    if not self.boolean_negamax(depth - 1):
+                        curr_best_move = move
+                        self.undo_move(move)    
+                        break
+                    self.undo_move(move)
+
+                if curr_best_move:
+                    best_move = curr_best_move
+                    break
+
+                depth += 1
+
+                # Stop if time running out?
+
+            if best_move:
+                self.play(best_move)
+                print(" ".join(best_move))
             else:
-                rand_move = moves[random.randint(0, len(moves)-1)]
+                # No winning move found, random move
+                rand_move = moves[random.randint(0, len(moves) - 1)]
                 self.play(rand_move)
                 print(" ".join(rand_move))
-            
+
+
+
             # Disable the time limit alarm 
             signal.alarm(0)
 
