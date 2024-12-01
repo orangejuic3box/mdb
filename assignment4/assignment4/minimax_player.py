@@ -217,6 +217,10 @@ class CommandInterface:
         return True
 
     def undo(self, move):
+        '''
+        Changes the board value to None, (erasing the move)
+        Switches the player
+        '''
         self.board[int(move[1])][int(move[0])] = None
         if self.player == 1:
             self.player = 2
@@ -224,6 +228,10 @@ class CommandInterface:
             self.player = 1
 
     def quick_play(self, move):
+        '''
+        Plays one move on the board, switches the player
+        Always make sure to undo
+        '''
         self.board[int(move[1])][int(move[0])] = int(move[2])
         if self.player == 1:
             self.player = 2
@@ -231,28 +239,55 @@ class CommandInterface:
             self.player = 1
 
     def add_to_tt(self, hash, move, winner):
+        '''
+        Takes in hashvalue of the board, move, and winner from playing that move,
+        puts it into the transposition table for easy lookup
+        '''
         if len(self.tt) < 1000000:
             self.tt[hash] = (move, winner)
 
     def minimax(self):
+        '''
+        Don't return this function, must undo bc of quickplay, always return
+        the values of the transposition table
+        Returns:
+            - move (List[str, str, str]) in the form of x, y, digit
+            - winning player (int) either player 1 or player 2
+        '''
+        #get hash code for board state
         hash = str(self.board)
+        #if seen this board position, return move, value
         if hash in self.tt:
             return self.tt[hash]
+        #else, get all legal moves
         moves = self.get_legal_moves()
+        #if no legal moves left, 
+        # add move and value to transposition table
+        # declare no moves and the winner
+        #RETURN no moves and the winner
         if len(moves) == 0:
+            #if current player is p1, winner = p2
             if self.player == 1:
                 self.add_to_tt(hash, None, 2)
                 return None, 2
             else:
                 self.add_to_tt(hash, None, 1)
                 return None, 1
+        #else for each move, do a quick play to find best move
+        #STOP quick play after finding a winning move
+        #undo the move you just played
+        #add move and winner to transposition table
+        #return the move and current player as the winner
         for move in moves:
-            self.quick_play(move)
-            winning_move, winner = self.minimax()
+            self.quick_play(move) #play the move on the board and switch players
+            winning_move, winner = self.minimax() #this will keep doing quick plays until a winner is found
             self.undo(move)
             if winner == self.player:
                 self.add_to_tt(hash, move, self.player)
                 return move, self.player
+        #else, couldn't find a winning move
+        #add last move to transposition table with opponent as the winner
+        #return those values
         if self.player == 1:
             self.add_to_tt(hash, winning_move, 2)
             return winning_move, 2
@@ -261,10 +296,13 @@ class CommandInterface:
             return winning_move, 1
 
     def genmove(self, args):
+        #get all legal moves 
         moves = self.get_legal_moves()
+        #resign if none left
         if len(moves) == 0:
             print("resign")
             return True
+        #make a copy of board
         player_copy = self.player
         board_copy = []
         for row in self.board:
@@ -273,6 +311,7 @@ class CommandInterface:
             # Set the time limit alarm
             signal.alarm(self.max_genmove_time)            
             # Attempt to find a winning move by solving the board
+            #make new empty transposition table
             self.tt = {}
             move, value = self.minimax()
             # Disable the time limit alarm 

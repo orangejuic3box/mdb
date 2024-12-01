@@ -221,10 +221,12 @@ class CommandInterface:
             # Set the time limit alarm
             signal.alarm(self.max_genmove_time)
             
-            # Generate a random move 
+            # Get all legal moves
             moves = self.get_legal_moves()
+            # If empty, resign
             if len(moves) == 0:
                 print("resign")
+            # else, pick random one and play it
             else:
                 rand_move = moves[random.randint(0, len(moves)-1)]
                 self.play(rand_move)
