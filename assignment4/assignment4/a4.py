@@ -267,7 +267,7 @@ class CommandInterface:
         self.board[y][x] = None
 
     def hash_board(self):
-        return str(self.board)
+        return tuple(tuple(row) for row in self.board)
 
     def evaluate_move_priority(self, move):
         x, y, num = int(move[0]), int(move[1]), int(move[2])
@@ -326,7 +326,9 @@ class CommandInterface:
                 depth += 1
 
                 # Stop if time running out?
-
+                if self.max_genmove_time - (depth*0.1) < 0:
+                    break
+                
             if best_move:
                 self.play(best_move)
                 print(" ".join(best_move))
