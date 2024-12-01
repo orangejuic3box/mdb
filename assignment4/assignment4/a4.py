@@ -32,11 +32,11 @@ class CommandInterface:
         self.player = 1
         self.max_genmove_time = 1
         signal.signal(signal.SIGALRM, handle_alarm)
-
+    
     #====================================================================================================================
     # VVVVVVVVVV Start of predefined functions. You may modify, but make sure not to break the functionality. VVVVVVVVVV
-    #====================================================================================================================    
-    #region
+    #====================================================================================================================
+
     # Convert a raw string to a command and a list of arguments
     def process_command(self, str):
         str = str.lower().strip()
@@ -93,7 +93,7 @@ class CommandInterface:
                 print(command)
         print("exit")
         return True
-    #endregion
+
     def game(self, args):
         if not self.arg_check(args, "n m"):
             return False
@@ -241,7 +241,7 @@ class CommandInterface:
 
         if len(self.get_legal_moves()) == 0:
             # No moves left, current player loses
-            self.transposition_table[board_hash] = False #set board hash to false
+            self.transposition_table[board_hash] = False
             return False
 
         moves = self.get_legal_moves()
@@ -288,6 +288,9 @@ class CommandInterface:
 
         return score
 
+
+
+
     def genmove(self, args):
         try:
             # Set the time limit alarm
@@ -300,9 +303,8 @@ class CommandInterface:
                 return True
             best_move = None
             depth = 1
-            print("         GENMOVE FOR PLAYER")
+
             while True:
-                print("depth:", depth)
                 curr_best_move = None
 
                 self.transposition_table = {}
