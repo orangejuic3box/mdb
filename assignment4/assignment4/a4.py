@@ -36,7 +36,7 @@ class CommandInterface:
     #====================================================================================================================
     # VVVVVVVVVV Start of predefined functions. You may modify, but make sure not to break the functionality. VVVVVVVVVV
     #====================================================================================================================
-
+    #region all the non game functions:
     # Convert a raw string to a command and a list of arguments
     def process_command(self, str):
         str = str.lower().strip()
@@ -93,7 +93,7 @@ class CommandInterface:
                 print(command)
         print("exit")
         return True
-
+    #endregion
     def game(self, args):
         if not self.arg_check(args, "n m"):
             return False
@@ -102,6 +102,10 @@ class CommandInterface:
             print("Invalid board size:", n, m, file=sys.stderr)
             return False
         
+        #mags:
+        #self.make_ztable
+        #self.current_hash = 0
+
         self.board = []
         for i in range(m):
             self.board.append([None]*n)
@@ -119,6 +123,12 @@ class CommandInterface:
         return True
 
     def is_legal(self, x, y, num):
+        '''
+        Returns:
+            - legal (bool) either True or False is the move legal?
+            - reason (str) if legal = False, gives the reason why
+        same as is_legal_reason in a2 just has the print statements
+        '''
         if self.board[y][x] is not None:
             return False, "occupied"
         
@@ -155,10 +165,13 @@ class CommandInterface:
         return True, ""
     
     def valid_move(self, x, y, num):
+        #checks bounds but doesn't do return anything
+        # if outside bounds, this is fine bc in self.play()
+        # illegal moves are checked anyways before this is called
         if  x >= 0 and x < len(self.board[0]) and\
                 y >= 0 and y < len(self.board) and\
                 (num == 0 or num == 1):
-            legal, _ = self.is_legal(x, y, num)
+            legal, _ = self.is_legal(x, y, num) #boolean, str reason if false
             return legal
 
     def play(self, args):
@@ -231,6 +244,17 @@ class CommandInterface:
     #===============================================================================================
     # VVVVVVVVVV Start of Assignment 4 functions. Add/modify as needed. VVVVVVVV
     #===============================================================================================
+
+    def boolean_negamax(self):
+        '''
+        Return:
+            - WINNER (1, 2 or unknown)
+            - BEST MOVE [x, y, num]
+        '''
+        pass
+
+
+
 
     def genmove(self, args):
         try:
