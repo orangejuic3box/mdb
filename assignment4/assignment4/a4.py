@@ -32,6 +32,9 @@ class CommandInterface:
         self.player = 1
         self.max_genmove_time = 1
         signal.signal(signal.SIGALRM, handle_alarm)
+
+        self.ztable = None
+        self.current_hash = 0
     
     #====================================================================================================================
     # VVVVVVVVVV Start of predefined functions. You may modify, but make sure not to break the functionality. VVVVVVVVVV
@@ -103,8 +106,8 @@ class CommandInterface:
             return False
         
         #mags:
-        #self.make_ztable
-        #self.current_hash = 0
+        self.make_ztable(m,n)
+        self.current_hash = 0
 
         self.board = []
         for i in range(m):
@@ -197,6 +200,8 @@ class CommandInterface:
             print("= illegal move: " + " ".join(args) + " " + reason + "\n")
             return False
         self.board[y][x] = num
+        #mags:
+        self.current_hash ^= self.ztable[y][x][num]
         if self.player == 1:
             self.player = 2
         else:
@@ -244,38 +249,140 @@ class CommandInterface:
     #===============================================================================================
     # VVVVVVVVVV Start of Assignment 4 functions. Add/modify as needed. VVVVVVVV
     #===============================================================================================
+    def make_ztable(self, row, col):
+        # 0, 1, 2 (EMPTY/None) -> range(3)
+        # print(row, "rows")
+        # print(col, "columns")
+        self.ztable = [[[random.getrandbits(64) for _ in range(3)] for _ in range(col)] for _ in range(row)]
 
-    def boolean_negamax(self):
+    def add_to_tt(self, board_key, move, win):
+        '''
+        Takes in hashvalue of the board, move, and win_value from playing that move,
+        puts it into the transposition table for easy lookup
+        '''
+        if len(self.tt) < 1000000:
+            self.tt[board_key] = (move, win)
+
+    def quick_play(self, move):
+        '''
+        Plays one move on the board, switches the player
+        Always make sure to undo
+        '''
+        self.board[int(move[1])][int(move[0])] = int(move[2])
+        self.current_hash ^= self.ztable[int(move[1])][int(move[0])][int(move[2])]
+        self.player = 3 - self.player
+
+    def undo(self, move):
+        '''
+        Changes the board value to None, (erasing the move)
+        Switches the player
+        '''
+        self.board[int(move[1])][int(move[0])] = None
+        self.current_hash ^= self.ztable[int(move[1])][int(move[0])][int(move[2])]
+        self.player = 3 - self.player
+   
+    def game_over(self):
+        if len(self.get_legal_moves()) == 0:
+            return True
+        return False
+    
+    def winner_is(self):
+        if not self.game_over():
+            return None
+        return 3 - self.player
+    
+    def evaluate_board(self, player):
+        if self.game_over():
+            winner = self.winner_is()
+            if winner == player:
+                return True
+            elif winner == 3 - player:
+                return False
+            else:
+                return "winner was not p1 or p2"
+        return "game was not over"
+
+    def boolean_negamax(self, player):
         '''
         Return:
-            - WINNER (1, 2 or unknown)
-            - BEST MOVE [x, y, num]
+            - is_won (bool) can you win from your spot
+            - best_move (List[str, str, str]) [x,y,num]
         '''
-        pass
+        #deal with time limit???
+        # if time.time() - self.start_time > self.time_limit:
+        #     return "unknown", None
 
+        # get dictionary key
+        board_key = self.current_hash
+        #if seen this board position, return move, value
+        if board_key in self.tt:
+            return self.tt[board_key] #what is this returning??
+        #else, get all legal moves
+        legal_moves = self.get_legal_moves()
+        #if no legal moves left, 
+        # add move and value to transposition table
+        # declare no moves and the winner
+        #RETURN no moves and the winner
+        if not legal_moves:
+            return self.evaluate_board(player), None
 
-
+            """ #if current player is p1, winner = p2
+            if self.player == 1:
+                self.add_to_tt(board_key, None, 2)
+                return None, 2
+            else:
+                self.add_to_tt(board_key, None, 1)
+                return None, 1 """
+        best_move = None
+        is_won = False
+        #else for each move, do a quick play to find best move
+        #STOP quick play after finding a winning move
+        #undo the move you just played
+        #add move and winner to transposition table
+        #return the move and current player as the winner
+        for move in legal_moves:
+            self.quick_play(move) #play the move on the board and switch players
+            win, _ = self.boolean_negamax(self.player) #keep playing until end of game or timeout
+            self.undo(move)
+            #timelimit???
+            # if win == "unknown":
+            #     return "unknown", None
+        
+            win = not win
+            if win == True:
+                is_won = True
+                best_move = move
+                break
+        self.tt[board_key] = is_won
+        return is_won, best_move
 
     def genmove(self, args):
+        #get all legal moves
+        moves = self.get_legal_moves()
+        if len(moves) == 0:
+            print("resign")
+            return True
+        #make a copy of board
+        player_copy = self.player
+        board_copy = []
+        for row in self.board:
+            board_copy.append(list(row))
         try:
             # Set the time limit alarm
-            signal.alarm(self.max_genmove_time)
-            
-            # Modify the following to give better moves than random play 
-            moves = self.get_legal_moves()
-            if len(moves) == 0:
-                print("resign")
-            else:
-                rand_move = moves[random.randint(0, len(moves)-1)]
-                self.play(rand_move)
-                print(" ".join(rand_move))
-            
+            signal.alarm(self.max_genmove_time)            
+            # Attempt to find a winning move by solving the board
+            #make new empty transposition table, hash, ztable
+            self.tt = {}
+            win, move = self.boolean_negamax()
             # Disable the time limit alarm 
             signal.alarm(0)
 
-        except TimeoutException:
-            # This block of code runs when the time limit is reached
-            print("resign")
+        except TimeoutError:
+            move = moves[random.randint(0, len(moves)-1)]
+        self.board = board_copy #board from before, makes sure not to use the board for search
+        self.player = player_copy
+        self.play(move)
+        print(" ".join(move))
 
         return True
     

@@ -34,7 +34,7 @@ class CommandInterface:
     #===============================================================================================
     # VVVVVVVVVV START of PREDEFINED FUNCTIONS. DO NOT MODIFY. VVVVVVVVVV
     #===============================================================================================
-
+    #region
     # Convert a raw string to a command and a list of arguments
     def process_command(self, str):
         str = str.lower().strip()
@@ -91,7 +91,7 @@ class CommandInterface:
                 print(command)
         print("exit")
         return True
-
+    #endregion
     #===============================================================================================
     # ɅɅɅɅɅɅɅɅɅɅ END OF PREDEFINED FUNCTIONS. ɅɅɅɅɅɅɅɅɅɅ
     #===============================================================================================
