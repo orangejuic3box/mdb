@@ -195,8 +195,6 @@ def play_game_send_command(player_tup, cmd):
         print(test.received.strip())
     test.matched = True
     if player_str == "opponent" and not test.passed:
-        print("if statement")
-        print(player_str, test.passed)
         print("ERROR: Our testing program had an error.")
         sys.exit()
     return test.passed, test.received
