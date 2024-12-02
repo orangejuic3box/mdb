@@ -7,6 +7,7 @@ import random
 import signal
 import math
 import random
+import time
 
 # Custom time out exception
 class TimeoutException(Exception):
@@ -369,14 +370,19 @@ class CommandInterface:
         self.tt[board_key] = is_won
         return is_won, best_move
 
-    def ucb1(self, state, N, C=2):
+    def ucb1(self, state, N, C=2, printit=False):
         total, n = self.tt[state]
         if n == 0: #child has not been seen
             return float("inf")
         v = total/n
         ln = math.log(N)
-        sqrt = math.sqrt(ln/n)
-        ucb = v + C * sqrt
+        sq_rt = math.sqrt(ln/n)
+        ucb = v + C * sq_rt
+        if printit:
+            print(v, total, n)
+            print(ln, N)
+            print(sq_rt)
+            print(ucb)
         return ucb
 
     def rollout(self):
@@ -416,35 +422,47 @@ class CommandInterface:
         self.current_hash = original_hash
         return value
 
-    def maximize_ucb(self, child_states, N):
+    def maximize_ucb(self, child_states, N, printit=False):
         ucb_values = {}
         for child in child_states:
             ucb_values[child] = self.ucb1(child, N)
         max_child = max(ucb_values, key=ucb_values.get) #mags: change this to choose random child if same ucb values
-        print(len(ucb_values), "possible moves")
-        return max_child
+        return max_child, max(ucb_values)
 
     def is_leaf_node(self, state):
+        '''
+        n = 0 OR no child nodes in the tree
+        '''
         total, n = self.tt[state]
         if n == 0:
             return True
-        return False
+        moves = self.get_legal_moves()
+        child_states, _ = self.get_children(moves) #_ = move_child, we dont need it here
+        for child in child_states:
+            if child in self.tt:
+                return False
+        return True
     
-    def propogate(self, path_to_leaf, value):
+    def propogate(self, path_to_leaf, value, printit=False):
         '''
         Backpropogate value(si) by adding it to the t-val and add 1 to each n to the leafnode it came from and up until the start state
         '''
-        # for move in path_to_leaf:
-        #     self.quick_play(move)
+        if printit:
+            print("BACKPROPGATION")
         while path_to_leaf != []:
             self.update_tt(self.current_hash, value)
             move = path_to_leaf.pop()
             self.undo(move)
+            if printit:
+                print("undoing move...", move)
+        if printit:
+            print(self.current_hash, "should be the root")
         #should be at the root now
         self.update_tt(self.current_hash, value)
 
-    def find_best_move(self, move_child:dict, child_states:list):
-        print("find bestie--------------")
+    def find_best_move(self, move_child:dict, child_states:list, printit=False):
+        if printit:
+            print("find bestie--------------")
         # Initialize variables for the best child and its value
         best_child = None
         best_value = -float('inf')  # Start with a very small value
@@ -455,12 +473,14 @@ class CommandInterface:
                 if n == 0:
                     continue
                 value = total/n
-                print(f"{child}: [{total}, {n}]")
-                if value >= best_value:
+                if printit:
+                    print(f"{child}: [{total}, {n}]")
+                if value >= best_value: #this will pick the last child with the best val
                     best_child = child
                     best_value = value
-        print("best move best child", best_child)
         best_move = move_child[best_child]
+        if printit:
+            print("best move best child best value", best_move, best_child, best_value)
         return best_move
 
     def get_children(self, moves):
@@ -473,19 +493,20 @@ class CommandInterface:
             self.undo(move)
         return child_states, move_child
 
-    def selection(self, current):
+    def selection(self, current, printit=False):
         moves = self.get_legal_moves()
         child_states, move_child = self.get_children(moves)
-
-        print("currenthash", self.current_hash)
+        in_the_tree = set(child_states).intersection(self.tt.keys())
+        """ print("currenthash", self.current_hash)
         print(len(child_states), "children")
-        print(self.tt)
-        
+        print(len(self.tt), "nodes in the tree") """
+
         #pick maximizing ucb1 child
         N = self.tt[current][1]
-        best_child = self.maximize_ucb(child_states, N)
+        best_child, highest_ucb_score = self.maximize_ucb(in_the_tree, N)
         best_move = move_child[best_child]
-        print("child with highest ucb score is ", best_child, "with move", best_move)
+        if printit:
+            print("child with highest ucb score is ", best_child, "with move", best_move, "and score", highest_ucb_score)
         return best_child, best_move
 
     def expand(self):
@@ -496,7 +517,7 @@ class CommandInterface:
             self.undo(move)
         return random.choice(moves)
 
-    def mcts(self):
+    def mcts(self, printit=False):
         '''
         1. Tree traversal: UCB1(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
             - choose child that maximizes this formula
@@ -521,41 +542,45 @@ class CommandInterface:
         state = self.current_hash
         moves = self.get_legal_moves()
         child_states, move_child = self.get_children(moves)
-        print("root state:",state)
+        if printit:
+            print("root state:",state)
         #(1) SELECTION
         if state not in self.tt:
-            print("NEVER SEEN BEFORE, should be the root aka hash 0")
+            if printit:
+                print("NEVER SEEN BEFORE, should be the root aka hash 0")
             #put root into tree
             self.tt[state] = [float("inf"), 0]
         # is current state a leaf node?
         current = state #needed to traverse tree
-
         path_to_leaf = []
         while not self.is_leaf_node(current):
-            print(f"curr: {current}")
             #there is a path further down
             best_child, best_move = self.selection(current)
             self.quick_play(best_move)
             path_to_leaf.append(best_move)
+            if printit:
+                print(f"curr: {current}")
+                self.show("")
+                print(f"move: {best_move}")
             current = best_child
-        print("leafnode found!", self.is_leaf_node(current), current)
+        if printit:
+            print("leafnode found!", self.is_leaf_node(current), current)
         total, n = self.tt[current]
         if n == 0:
             #(2) NODE EXPANSION
             move = self.expand()
             self.quick_play(move)
             path_to_leaf.append(move)
-        print("THE PATH TRAVELLED")
-        print(path_to_leaf)
+        if printit:
+            print("THE PATH TRAVELLED")
+            print(path_to_leaf)
         #(3)SIMULATION
-        value = self.rollout()
-        print("random rollout was", value)
+        value = self.rollout() #resets the board to what it was from the rollout
+        if printit:
+            print("random rollout was", value)
         #(4)BACKPROPOGATION
         self.propogate(path_to_leaf, value)
         #keep doing this until time runs out?
-
-
-
 
 
 
@@ -603,14 +628,16 @@ class CommandInterface:
             value = self.rollout()
             print("random rollout was", value)
             self.propogate(path_to_leaf, value) """
-        
-        print("ALMOST OVER")
-        print(self.tt)
-        print("mc", move_child)
-        print()
-        print("cs", child_states)
         best_move = self.find_best_move(move_child, child_states)
-        print("the best move so far is", best_move)
+        if printit:
+            print("ALMOST OVER")
+            print(state, self.current_hash)
+            # self.show("")
+            # print(self.tt)
+            # print("mc", move_child)
+            # print()
+            # print("cs", child_states)
+            print("the best move so far is", best_move)
         return best_move
 
     def genmove(self, args):
@@ -619,26 +646,31 @@ class CommandInterface:
         if len(moves) == 0:
             print("resign")
             return True
-        #make a copy of board
-        player_copy = self.player
-        board_copy = []
-        for row in self.board:
-            board_copy.append(list(row))
+        # #make a copy of board
+        # player_copy = self.player
+        # board_copy = []
+        # for row in self.board:
+        #     board_copy.append(list(row))
         try:
+            start_time = time.time()
+            time_limit = self.max_genmove_time
             # Set the time limit alarm
             signal.alarm(self.max_genmove_time)            
             # Attempt to find a winning move by solving the board
-            #CHANGE THIS TO MCTS
-            move = self.mcts()
+            while time.time() - start_time < (2/3)*time_limit:
+                move = self.mcts()
             # Disable the time limit alarm 
             signal.alarm(0)
 
         except TimeoutError:
             print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
-        self.board = board_copy #board from before, makes sure not to use the board for search
-        self.player = player_copy
-        # self.play(move)
+        # print("done mcts", time.time()-start_time)
+        # print(self.current_hash)
+        # print(self.board == board_copy, self.player == player_copy, "was it the same??")
+        # self.board = board_copy #board from before, makes sure not to use the board for search
+        # self.player = player_copy
+        self.play(move)
         print(" ".join(move))
 
         return True
