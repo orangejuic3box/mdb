@@ -402,9 +402,9 @@ class CommandInterface:
             #RANDOM POLICY
             # move = random.choice(moves)
             #MOVE PRIORITY POLICY
-            # moves.sort(key=lambda move: self.evaluate_move_priority(move), reverse=True)
-            move = max(moves, key=self.evaluate_move_priority)
-
+            # move = max(moves, key=self.evaluate_move_priority)
+            #GREEDY POLICY
+            move = self.greedy(moves)
             self.quick_play(move)
             i += 1
         #check who the winner is
@@ -432,6 +432,14 @@ class CommandInterface:
             elif num > second and num != first:
                 second = num    # Update second largest
         return second if second != float('-inf') else None
+
+    def greedy(self, moves):
+        child_states, move_child = self.get_children(moves)
+        try:
+            return self.find_best_move(move_child, child_states)
+        except Exception:
+            rand_move = moves[random.randint(0, len(moves)-1)]
+            return rand_move
 
     def maximize_ucb(self, child_states, N, printit=False):
         ucb_values = {}
@@ -515,10 +523,10 @@ class CommandInterface:
         moves = self.get_legal_moves()
         child_states, move_child = self.get_children(moves)
         in_the_tree = set(child_states).intersection(self.tt.keys())
-        """ print("currenthash", self.current_hash)
-        print(len(child_states), "children")
-        print(len(self.tt), "nodes in the tree") """
-
+        if printit:
+            print("currenthash", self.current_hash)
+            print(len(child_states), "children")
+            print(len(self.tt), "nodes in the tree")
         #pick maximizing ucb1 child
         N = self.tt[current][1]
         best_child, highest_ucb_score = self.maximize_ucb(in_the_tree, N)
