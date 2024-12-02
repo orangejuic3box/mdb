@@ -325,10 +325,11 @@ class CommandInterface:
 
                 depth += 1
 
-                # Stop if time running out?
-                if self.max_genmove_time - (depth*0.1) < 0:
+        
+                #stop if we have reached the maximum depth 
+                if depth > 100:
                     break
-                
+
             if best_move:
                 self.play(best_move)
                 print(" ".join(best_move))
