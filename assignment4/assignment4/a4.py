@@ -54,6 +54,7 @@ class CommandInterface:
         try:
             return self.command_dict[command](args)
         except Exception as e:
+            print("exception as e", e)
             print("Command '" + str + "' failed with exception:", file=sys.stderr)
             print(e, file=sys.stderr)
             print("= -1\n")
@@ -266,11 +267,14 @@ class CommandInterface:
         if len(self.tt) < 1000000:
             self.tt[board_key] = [total, n]
         
-    def update_tt(self, board_key, value):
-        total, n = self.tt[board_key]
-        total += value
+    def update_tt(self, state, value):
+        total, n = self.tt[state]
+        if total == float("inf"):
+            total = value
+        else:
+            total += value
         n += 1
-        self.tt[board_key] = [total, n]
+        self.tt[state] = [total, n]
 
     def quick_play(self, move):
         '''
@@ -367,6 +371,8 @@ class CommandInterface:
 
     def ucb1(self, state, N, C=2):
         total, n = self.tt[state]
+        if n == 0: #child has not been seen
+            return float("inf")
         v = total/n
         ln = math.log(N)
         sqrt = math.sqrt(ln/n)
@@ -384,11 +390,13 @@ class CommandInterface:
         '''
         original_player = self.player
         original_board = []
+        original_hash = self.current_hash
         for row in self.board:
             original_board.append(list(row))
         i = 0
         while True:
             if i > 10000:
+                print("so many rollouts")
                 return "too many rollouts"
             moves = self.get_legal_moves()
             if not moves: #no more moves to play, terminal
@@ -396,15 +404,97 @@ class CommandInterface:
             move = random.choice(moves)
             self.quick_play(move)
             i += 1
-
         #check who the winner is
         winner = self.winner_is()
+        if winner == original_player:
+            value = 1
+        else:
+            value =  0
+        #reset everything
         self.board = original_board
         self.player = original_player
-        if winner == original_player:
-            return 1
-        else:
-            return 0
+        self.current_hash = original_hash
+        return value
+
+    def maximize_ucb(self, child_states, N):
+        ucb_values = {}
+        for child in child_states:
+            ucb_values[child] = self.ucb1(child, N)
+        max_child = max(ucb_values, key=ucb_values.get) #mags: change this to choose random child if same ucb values
+        print(len(ucb_values), "possible moves")
+        return max_child
+
+    def is_leaf_node(self, state):
+        total, n = self.tt[state]
+        if n == 0:
+            return True
+        return False
+    
+    def propogate(self, path_to_leaf, value):
+        '''
+        Backpropogate value(si) by adding it to the t-val and add 1 to each n to the leafnode it came from and up until the start state
+        '''
+        # for move in path_to_leaf:
+        #     self.quick_play(move)
+        while path_to_leaf != []:
+            self.update_tt(self.current_hash, value)
+            move = path_to_leaf.pop()
+            self.undo(move)
+        #should be at the root now
+        self.update_tt(self.current_hash, value)
+
+    def find_best_move(self, move_child:dict, child_states:list):
+        print("find bestie--------------")
+        # Initialize variables for the best child and its value
+        best_child = None
+        best_value = -float('inf')  # Start with a very small value
+        # Iterate over child_states and check their values in tt
+        for child in child_states:
+            if child in self.tt:  # Check if the child is present in tt
+                total, n = self.tt[child]
+                if n == 0:
+                    continue
+                value = total/n
+                print(f"{child}: [{total}, {n}]")
+                if value >= best_value:
+                    best_child = child
+                    best_value = value
+        print("best move best child", best_child)
+        best_move = move_child[best_child]
+        return best_move
+
+    def get_children(self, moves):
+        child_states = []
+        move_child = {}
+        for move in moves:
+            self.quick_play(move)
+            child_states.append(self.current_hash)
+            move_child[self.current_hash] = move
+            self.undo(move)
+        return child_states, move_child
+
+    def selection(self, current):
+        moves = self.get_legal_moves()
+        child_states, move_child = self.get_children(moves)
+
+        print("currenthash", self.current_hash)
+        print(len(child_states), "children")
+        print(self.tt)
+        
+        #pick maximizing ucb1 child
+        N = self.tt[current][1]
+        best_child = self.maximize_ucb(child_states, N)
+        best_move = move_child[best_child]
+        print("child with highest ucb score is ", best_child, "with move", best_move)
+        return best_child, best_move
+
+    def expand(self):
+        moves = self.get_legal_moves()
+        for move in moves:
+            self.quick_play(move)
+            self.tt[self.current_hash] = [float("inf"), 0] #add new nodes
+            self.undo(move)
+        return random.choice(moves)
 
     def mcts(self):
         '''
@@ -422,9 +512,6 @@ class CommandInterface:
                     - how many times has lead node been sampled? is ni == 0
                         -> Never been sampled: do a rollout
                         -> Has been sampled: add new nodes to tree, for each possible move from current state, add a new state to the tree, current becomes first new child node, do a rollout
-
-        Backpropogate value(si) by adding it to the t-val and add 1 to each n to the leafnode it came from and up until the start state
-
         Each state has:
             - t = total value
             - n = number of times visited
@@ -432,23 +519,99 @@ class CommandInterface:
         '''
         #get the current state
         state = self.current_hash
+        moves = self.get_legal_moves()
+        child_states, move_child = self.get_children(moves)
+        print("root state:",state)
+        #(1) SELECTION
+        if state not in self.tt:
+            print("NEVER SEEN BEFORE, should be the root aka hash 0")
+            #put root into tree
+            self.tt[state] = [float("inf"), 0]
         # is current state a leaf node?
-        if state in self.tt: #HAS been seen before, keep searching
+        current = state #needed to traverse tree
+
+        path_to_leaf = []
+        while not self.is_leaf_node(current):
+            print(f"curr: {current}")
+            #there is a path further down
+            best_child, best_move = self.selection(current)
+            self.quick_play(best_move)
+            path_to_leaf.append(best_move)
+            current = best_child
+        print("leafnode found!", self.is_leaf_node(current), current)
+        total, n = self.tt[current]
+        if n == 0:
+            #(2) NODE EXPANSION
+            move = self.expand()
+            self.quick_play(move)
+            path_to_leaf.append(move)
+        print("THE PATH TRAVELLED")
+        print(path_to_leaf)
+        #(3)SIMULATION
+        value = self.rollout()
+        print("random rollout was", value)
+        #(4)BACKPROPOGATION
+        self.propogate(path_to_leaf, value)
+        #keep doing this until time runs out?
+
+
+
+
+
+
+
+        """ if state in self.tt: #HAS been seen before, keep searching
             # find child leaf node
+            print("WEVE BEEN HERE BEFORE")
             moves = self.get_legal_moves()
             child_states = []
             for move in moves:
                 self.quick_play(move)
                 child_states.append(self.current_hash)
                 self.undo(move)
-            print(state)
-            print(self.current_hash)
-            print(child_states)
-        else: #never seen before
-            self.rollout()
+            print("currenthash", self.current_hash)
+            print(len(child_states), "children")
+            print(self.tt)
+            #pick maximizing ucb1 child
+            N = self.tt[state][1]
+            best_child = self.maximize_ucb(child_states, N)
+            print("the best child is", best_child)
 
+        #current state should not be in tt
+        if state not in self.tt:
+            print("NEVER SEEN BEFORE")
+            #put root into tree
+            self.tt[state] = [float("inf"), 0]
+            #create new child nodes into tree
+            moves = self.get_legal_moves()
+            child_states = []
+            move_child = {}
+            path_to_leaf = []
+            for move in moves:
+                self.quick_play(move)
+                child_states.append(self.current_hash)
+                move_child[self.current_hash] = move
+                self.tt[self.current_hash] = [float("inf"), 0]
+                self.undo(move)
+            #pick maximizing ucb1 child
+            N = self.tt[state][1]
+            best_child = self.maximize_ucb(child_states, N)
+            print("the best child is", best_child)
 
-        return "no move sorry"
+            path_to_leaf.append(move_child[best_child])
+
+            value = self.rollout()
+            print("random rollout was", value)
+            self.propogate(path_to_leaf, value) """
+        
+        print("ALMOST OVER")
+        print(self.tt)
+        print("mc", move_child)
+        print()
+        print("cs", child_states)
+        best_move = self.find_best_move(move_child, child_states)
+        print("the best move so far is", best_move)
+        return best_move
 
     def genmove(self, args):
         #get all legal moves
@@ -471,10 +634,11 @@ class CommandInterface:
             signal.alarm(0)
 
         except TimeoutError:
+            print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
         self.board = board_copy #board from before, makes sure not to use the board for search
         self.player = player_copy
-        self.play(move)
+        # self.play(move)
         print(" ".join(move))
 
         return True
