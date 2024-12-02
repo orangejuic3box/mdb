@@ -5,6 +5,8 @@
 import sys
 import random
 import signal
+import math
+import random
 
 # Custom time out exception
 class TimeoutException(Exception):
@@ -108,6 +110,7 @@ class CommandInterface:
         #mags:
         self.make_ztable(m,n)
         self.current_hash = 0
+        self.tt = {}
 
         self.board = []
         for i in range(m):
@@ -255,13 +258,19 @@ class CommandInterface:
         # print(col, "columns")
         self.ztable = [[[random.getrandbits(64) for _ in range(3)] for _ in range(col)] for _ in range(row)]
 
-    def add_to_tt(self, board_key, move, win):
+    def add_to_tt(self, board_key, total, n):
         '''
         Takes in hashvalue of the board, move, and win_value from playing that move,
         puts it into the transposition table for easy lookup
         '''
         if len(self.tt) < 1000000:
-            self.tt[board_key] = (move, win)
+            self.tt[board_key] = [total, n]
+        
+    def update_tt(self, board_key, value):
+        total, n = self.tt[board_key]
+        total += value
+        n += 1
+        self.tt[board_key] = [total, n]
 
     def quick_play(self, move):
         '''
@@ -288,7 +297,7 @@ class CommandInterface:
     
     def winner_is(self):
         if not self.game_over():
-            return None
+            return "game not over"
         return 3 - self.player
     
     def evaluate_board(self, player):
@@ -356,6 +365,91 @@ class CommandInterface:
         self.tt[board_key] = is_won
         return is_won, best_move
 
+    def ucb1(self, state, N, C=2):
+        total, n = self.tt[state]
+        v = total/n
+        ln = math.log(N)
+        sqrt = math.sqrt(ln/n)
+        ucb = v + C * sqrt
+        return ucb
+
+    def rollout(self):
+        '''
+        Rollout(si):
+            loop forever: #potentially change this?
+                if si is a terminal state:
+                    return value(si)
+                ai = random(legal_moves(si))
+                si = quick_play(ai) #simulate the move
+        '''
+        original_player = self.player
+        original_board = []
+        for row in self.board:
+            original_board.append(list(row))
+        i = 0
+        while True:
+            if i > 10000:
+                return "too many rollouts"
+            moves = self.get_legal_moves()
+            if not moves: #no more moves to play, terminal
+                break
+            move = random.choice(moves)
+            self.quick_play(move)
+            i += 1
+
+        #check who the winner is
+        winner = self.winner_is()
+        self.board = original_board
+        self.player = original_player
+        if winner == original_player:
+            return 1
+        else:
+            return 0
+
+    def mcts(self):
+        '''
+        1. Tree traversal: UCB1(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
+            - choose child that maximizes this formula
+            - N is equal to the number of times the CURRENT aka parent node hs been visited 
+        2. Node Expansion
+        3. Rollout (random simulation)
+        4. Backpropogation
+
+        Given the current state, 
+            - is current state a leaf node?
+                -> NO: find the childnode (nextstate) from the action that maximises the UCB1 formula, set that child to be the current state, continue until leaf node (end of tree) reached
+                -> YES: 
+                    - how many times has lead node been sampled? is ni == 0
+                        -> Never been sampled: do a rollout
+                        -> Has been sampled: add new nodes to tree, for each possible move from current state, add a new state to the tree, current becomes first new child node, do a rollout
+
+        Backpropogate value(si) by adding it to the t-val and add 1 to each n to the leafnode it came from and up until the start state
+
+        Each state has:
+            - t = total value
+            - n = number of times visited
+            - v = t/n
+        '''
+        #get the current state
+        state = self.current_hash
+        # is current state a leaf node?
+        if state in self.tt: #HAS been seen before, keep searching
+            # find child leaf node
+            moves = self.get_legal_moves()
+            child_states = []
+            for move in moves:
+                self.quick_play(move)
+                child_states.append(self.current_hash)
+                self.undo(move)
+            print(state)
+            print(self.current_hash)
+            print(child_states)
+        else: #never seen before
+            self.rollout()
+
+
+        return "no move sorry"
+
     def genmove(self, args):
         #get all legal moves
         moves = self.get_legal_moves()
@@ -371,9 +465,8 @@ class CommandInterface:
             # Set the time limit alarm
             signal.alarm(self.max_genmove_time)            
             # Attempt to find a winning move by solving the board
-            #make new empty transposition table, hash, ztable
-            self.tt = {}
-            win, move = self.boolean_negamax()
+            #CHANGE THIS TO MCTS
+            move = self.mcts()
             # Disable the time limit alarm 
             signal.alarm(0)
 
