@@ -586,6 +586,11 @@ class CommandInterface:
             print("THE PATH TRAVELLED")
             print(path_to_leaf)
 
+    def add_children(self, child_states):
+        for child in child_states:
+            if child not in self.tt:
+                self.tt[child] = [float("inf"), 0]
+
     def mcts(self, iter_count, printit=False):
         '''
         1. Tree traversal: UCB(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
@@ -610,22 +615,39 @@ class CommandInterface:
         current = self.current_hash
         if printit:
             print(f"iter {iter_count}--------------------------------root state: {current}")
-        #(1)SELECTION
+        #add in the root if its not there already and grab the possible moves and the child state it would lead to
+        if current not in self.tt:
+            self.tt[current] = [float("inf"), 0]
+            #put in the child states if they don't exist already
+            moves = self.get_legal_moves()
+            child_states, _ = self.get_children(moves)
+            self.add_children(child_states)
+
+        #delete these prints later
+        print(self.tt)
+
+
+
+        #(1)SELECTION - select a node until we find a node we don't know how to select anymore
         #is current a leaf node?
         while not self.is_leaf_node(current):
             #search for a leaf node
             pass
         if printit:
-            print(f"{current} is a leaf node state")
+            print(f"{current} is a leaf node state", self.is_leaf_node(current))
+        #(2)EXPANSION
+        #is the ni for current equal to 0?
+        _, n = self.tt[current]
+        if n != 0:
+            #add child nodes to the tree
+            #set current to be one these children
+            pass
+
 
 
         
         
         
-
-
-
-
 
 
 
@@ -668,32 +690,25 @@ class CommandInterface:
             iter_count = 0            
             # Attempt to find a winning move by solving the board
             end_time = max(start_time + (7/8)*time_limit, start_time + time_limit - 1)
-            print(start_time + (7/8)*time_limit, start_time+time_limit)
-            print(start_time + time_limit - 1, start_time + time_limit)
-            print(end_time)
-            print(time.time())
             while time.time() < end_time and iter_count < 3:
                 # print(f"iter {iter_count}")
                 move = self.mcts(iter_count, printit=True)
                 iter_count += 1
             # Disable the time limit alarm 
             signal.alarm(0)
-        
-        except TimeoutError as e:
+        except TimeoutException as e:
             print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
+            signal.alarm(0)
         except Exception as e:
             print(f"EXCEPTION?? {e}")
-        # finally:
-        #     # Disable the time limit alarm 
-        #     print(f"move {move}")
-        #     signal.alarm(0)
+            print("rah mcts fcked up, getting random move")
+            move = moves[random.randint(0, len(moves)-1)]
+            signal.alarm(0)
         if printit:
             print("done mcts", time.time()-start_time)
-        print("shibal")
         print(f"move {move}")
         self.play(move)
-        print("saeki")
         print(" ".join(move))
         return True
     
