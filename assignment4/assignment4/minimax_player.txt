@@ -9,8 +9,8 @@ set_student_as_player 1
 ?play_game
 1
 = 1
-set_student_as_player 1
+set_student_as_player 2
 = 1
 ?play_game
-1
+2
 = 1

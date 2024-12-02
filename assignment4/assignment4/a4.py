@@ -361,6 +361,22 @@ class CommandInterface:
             print(ucb)
         return ucb
 
+    def evaluate_move_priority(self, move):
+        x, y, num = int(move[0]), int(move[1]), int(move[2])
+        score = 0
+        # Center Control (Encourage staying close to the center)
+        center_x, center_y = len(self.board[0]) // 2, len(self.board) // 2
+        if x == center_x and y == center_y:
+            score += 10
+        elif abs(x - center_x) <= 1 and abs(y - center_y) <= 1:
+            score += 5  # Reward for being close to the center
+        # Prefer balanced moves
+        zeros = sum(row.count(0) for row in self.board)
+        ones = sum(row.count(1) for row in self.board)
+        imbalance = abs(zeros - ones)
+        score -= imbalance ** 1.5  # Exponentially scale penalty for imbalance
+        return score
+
     def rollout(self):
         '''
         Rollout(si):
@@ -383,7 +399,12 @@ class CommandInterface:
             moves = self.get_legal_moves()
             if not moves: #no more moves to play, terminal
                 break
-            move = random.choice(moves)
+            #RANDOM POLICY
+            # move = random.choice(moves)
+            #MOVE PRIORITY POLICY
+            # moves.sort(key=lambda move: self.evaluate_move_priority(move), reverse=True)
+            move = max(moves, key=self.evaluate_move_priority)
+
             self.quick_play(move)
             i += 1
         #check who the winner is
