@@ -55,7 +55,7 @@ class CommandInterface:
         try:
             return self.command_dict[command](args)
         except Exception as e:
-            print("exception as e", e)
+            print(f"exception as e for command {command}: {e}")
             print("Command '" + str + "' failed with exception:", file=sys.stderr)
             print(e, file=sys.stderr)
             print("= -1\n")
@@ -509,8 +509,7 @@ class CommandInterface:
             print("child with highest ucb score is ", best_child, "with move", best_move, "and score", highest_ucb_score)
         return best_child, best_move
 
-    def expand(self):
-        moves = self.get_legal_moves()
+    def expand(self, moves):
         for move in moves:
             self.quick_play(move)
             self.tt[self.current_hash] = [float("inf"), 0] #add new nodes
@@ -568,9 +567,11 @@ class CommandInterface:
         total, n = self.tt[current]
         if n == 0:
             #(2) NODE EXPANSION
-            move = self.expand()
-            self.quick_play(move)
-            path_to_leaf.append(move)
+            moves = self.get_legal_moves()
+            if moves: #there are nodes to expand!!
+                move = self.expand(moves)
+                self.quick_play(move)
+                path_to_leaf.append(move)
         if printit:
             print("THE PATH TRAVELLED")
             print(path_to_leaf)

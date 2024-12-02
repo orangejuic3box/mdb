@@ -160,6 +160,7 @@ def send_command(process, command, expected_fail = False, to_mark = False):
             output += line
 
             if '= -1' in line and not expected_fail:
+                print(output)
                 return False, output, "Command failed with return code -1."
             else:
                 return True, output, ""
