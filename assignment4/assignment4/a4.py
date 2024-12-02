@@ -339,60 +339,6 @@ class CommandInterface:
                 return "winner was not p1 or p2"
         return "game was not over"
 
-    def boolean_negamax(self, player):
-        '''
-        Return:
-            - is_won (bool) can you win from your spot
-            - best_move (List[str, str, str]) [x,y,num]
-        '''
-        #deal with time limit???
-        # if time.time() - self.start_time > self.time_limit:
-        #     return "unknown", None
-
-        # get dictionary key
-        board_key = self.current_hash
-        #if seen this board position, return move, value
-        if board_key in self.tt:
-            return self.tt[board_key] #what is this returning??
-        #else, get all legal moves
-        legal_moves = self.get_legal_moves()
-        #if no legal moves left, 
-        # add move and value to transposition table
-        # declare no moves and the winner
-        #RETURN no moves and the winner
-        if not legal_moves:
-            return self.evaluate_board(player), None
-
-            """ #if current player is p1, winner = p2
-            if self.player == 1:
-                self.add_to_tt(board_key, None, 2)
-                return None, 2
-            else:
-                self.add_to_tt(board_key, None, 1)
-                return None, 1 """
-        best_move = None
-        is_won = False
-        #else for each move, do a quick play to find best move
-        #STOP quick play after finding a winning move
-        #undo the move you just played
-        #add move and winner to transposition table
-        #return the move and current player as the winner
-        for move in legal_moves:
-            self.quick_play(move) #play the move on the board and switch players
-            win, _ = self.boolean_negamax(self.player) #keep playing until end of game or timeout
-            self.undo(move)
-            #timelimit???
-            # if win == "unknown":
-            #     return "unknown", None
-        
-            win = not win
-            if win == True:
-                is_won = True
-                best_move = move
-                break
-        self.tt[board_key] = is_won
-        return is_won, best_move
-
     def adaptive_c(self, depth, max_depth, printit=False):
         if printit:
             print(depth, max_depth)
