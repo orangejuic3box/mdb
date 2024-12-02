@@ -166,6 +166,7 @@ def send_command(process, command, expected_fail = False, to_mark = False):
                 return True, output, ""
         
         except TimeoutException:
+            print(output)
             return False, output, "Command timeout, exceeded maximum allowed time of " + str(DYNAMIC_TIMEOUT) + " seconds."
 
     except Exception as e:

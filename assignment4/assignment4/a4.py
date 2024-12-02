@@ -6,7 +6,6 @@ import sys
 import random
 import signal
 import math
-import random
 import time
 
 # Custom time out exception
@@ -29,7 +28,8 @@ class CommandInterface:
             "legal" : self.legal,
             "genmove" : self.genmove,
             "winner" : self.winner,
-            "timelimit": self.timelimit
+            "timelimit": self.timelimit,
+            "random": self.random
         }
         self.board = [[None]]
         self.player = 1
@@ -38,6 +38,8 @@ class CommandInterface:
 
         self.ztable = None
         self.current_hash = 0
+        self.n = 0
+        self.m = 0
     
     #====================================================================================================================
     # VVVVVVVVVV Start of predefined functions. You may modify, but make sure not to break the functionality. VVVVVVVVVV
@@ -113,6 +115,8 @@ class CommandInterface:
         self.make_ztable(m,n)
         self.current_hash = 0
         self.tt = {}
+        self.n = n
+        self.m = m
 
         self.board = []
         for i in range(m):
@@ -254,6 +258,25 @@ class CommandInterface:
     #===============================================================================================
     # VVVVVVVVVV Start of Assignment 4 functions. Add/modify as needed. VVVVVVVV
     #===============================================================================================
+    def random(self, args):
+        # Get all legal moves
+        moves = self.get_legal_moves()
+        # If empty, resign
+        if len(moves) == 0:
+            print("resign")
+        # else, pick random one and play it
+        else:
+            rand_move = moves[random.randint(0, len(moves)-1)]
+            self.play(rand_move)
+            print(" ".join(rand_move))
+        return True
+
+    def get_depth(self):
+        depth = 0
+        for row in self.board:
+            depth += sum(1 for x in row if x in {0, 1})
+        return depth
+            
     def make_ztable(self, row, col):
         # 0, 1, 2 (EMPTY/None) -> range(3)
         # print(row, "rows")
@@ -370,7 +393,14 @@ class CommandInterface:
         self.tt[board_key] = is_won
         return is_won, best_move
 
-    def ucb1(self, state, N, C=2, printit=False):
+    def adaptive_c(self, depth, max_depth, printit=False):
+        if printit:
+            print(depth, max_depth)
+        initial_c = 1.41  # High exploration at root
+        final_c = 0.5  # Lower value for deeper nodes
+        return initial_c + (final_c - initial_c) * (depth / max_depth)
+
+    def ucb1(self, state, N, C, printit=False):
         total, n = self.tt[state]
         if n == 0: #child has not been seen
             return float("inf")
@@ -421,19 +451,38 @@ class CommandInterface:
         self.player = original_player
         self.current_hash = original_hash
         return value
+    
+    def second_largest(self, nums):
+        # Check if the list has at least two distinct elements
+        if len(nums) < 2:
+            return None  # Not enough elements to find second largest
+        # Initialize the two largest numbers
+        first, second = float('-inf'), float('-inf')
+        for num in nums:
+            if num > first:
+                second = first  # Update second largest
+                first = num     # Update largest
+            elif num > second and num != first:
+                second = num    # Update second largest
+        return second if second != float('-inf') else None
 
     def maximize_ucb(self, child_states, N, printit=False):
         ucb_values = {}
         for child in child_states:
-            ucb_values[child] = self.ucb1(child, N)
+            c = self.adaptive_c(self.get_depth(), self.n*self.m)
+            ucb_values[child] = self.ucb1(child, N, c)
         max_child = max(ucb_values, key=ucb_values.get) #mags: change this to choose random child if same ucb values
-        return max_child, max(ucb_values)
+        max_value = max(ucb_values)
+        s = self.second_largest(ucb_values)
+        if printit:
+            print(max_value, s, max_value-s)
+        return max_child, max_value
 
     def is_leaf_node(self, state):
         '''
         n = 0 OR no child nodes in the tree
         '''
-        total, n = self.tt[state]
+        _, n = self.tt[state]
         if n == 0:
             return True
         moves = self.get_legal_moves()
@@ -475,9 +524,11 @@ class CommandInterface:
                 value = total/n
                 if printit:
                     print(f"{child}: [{total}, {n}]")
-                if value >= best_value: #this will pick the last child with the best val
+                if value > best_value: #this will pick the last child with the best val
                     best_child = child
                     best_value = value
+        if best_child == None:
+            raise Exception("child state is empty or no child could be found in tt")
         best_move = move_child[best_child]
         if printit:
             print("best move best child best value", best_move, best_child, best_value)
@@ -518,7 +569,7 @@ class CommandInterface:
 
     def mcts(self, printit=False):
         '''
-        1. Tree traversal: UCB1(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
+        1. Tree traversal: UCB(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
             - choose child that maximizes this formula
             - N is equal to the number of times the CURRENT aka parent node hs been visited 
         2. Node Expansion
@@ -583,52 +634,6 @@ class CommandInterface:
         self.propogate(path_to_leaf, value)
         #keep doing this until time runs out?
 
-
-
-
-        """ if state in self.tt: #HAS been seen before, keep searching
-            # find child leaf node
-            print("WEVE BEEN HERE BEFORE")
-            moves = self.get_legal_moves()
-            child_states = []
-            for move in moves:
-                self.quick_play(move)
-                child_states.append(self.current_hash)
-                self.undo(move)
-            print("currenthash", self.current_hash)
-            print(len(child_states), "children")
-            print(self.tt)
-            #pick maximizing ucb1 child
-            N = self.tt[state][1]
-            best_child = self.maximize_ucb(child_states, N)
-            print("the best child is", best_child)
-
-        #current state should not be in tt
-        if state not in self.tt:
-            print("NEVER SEEN BEFORE")
-            #put root into tree
-            self.tt[state] = [float("inf"), 0]
-            #create new child nodes into tree
-            moves = self.get_legal_moves()
-            child_states = []
-            move_child = {}
-            path_to_leaf = []
-            for move in moves:
-                self.quick_play(move)
-                child_states.append(self.current_hash)
-                move_child[self.current_hash] = move
-                self.tt[self.current_hash] = [float("inf"), 0]
-                self.undo(move)
-            #pick maximizing ucb1 child
-            N = self.tt[state][1]
-            best_child = self.maximize_ucb(child_states, N)
-            print("the best child is", best_child)
-
-            path_to_leaf.append(move_child[best_child])
-
-            value = self.rollout()
-            print("random rollout was", value)
-            self.propogate(path_to_leaf, value) """
         best_move = self.find_best_move(move_child, child_states)
         if printit:
             print("ALMOST OVER")
