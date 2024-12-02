@@ -376,3 +376,5 @@ if __name__ == "__main__":
         sys.exit()
 
     test_assignment(sys.argv[1], sys.argv[2])
+    sound_file = '/System/Library/Sounds/Submarine.aiff'
+    os.system(f'afplay {sound_file}')
