@@ -458,14 +458,14 @@ class CommandInterface:
         n = 0 OR no child nodes in the tree
         '''
         _, n = self.tt[state]
-        if n == 0:
+        if n == 0: #n = 0, has not been explored
             return True
         moves = self.get_legal_moves()
         child_states, _ = self.get_children(moves) #_ = move_child, we dont need it here
         for child in child_states:
             if child in self.tt:
-                return False
-        return True
+                return False #child is in tree NOT A LEAFNODE
+        return True #no child was in the tree, LEAF NODE
     
     def propogate(self, path_to_leaf, value, printit=False):
         '''
@@ -542,37 +542,10 @@ class CommandInterface:
             self.undo(move)
         return random.choice(moves)
 
-    def mcts(self, iter_count, printit=False):
-        '''
-        1. Tree traversal: UCB(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
-            - choose child that maximizes this formula
-            - N is equal to the number of times the CURRENT aka parent node hs been visited 
-        2. Node Expansion
-        3. Rollout (random simulation)
-        4. Backpropogation
-
-        Given the current state, 
-            - is current state a leaf node?
-                -> NO: find the childnode (nextstate) from the action that maximises the UCB1 formula, set that child to be the current state, continue until leaf node (end of tree) reached
-                -> YES: 
-                    - how many times has lead node been sampled? is ni == 0
-                        -> Never been sampled: do a rollout
-                        -> Has been sampled: add new nodes to tree, for each possible move from current state, add a new state to the tree, current becomes first new child node, do a rollout
-        Each state has:
-            - t = total value
-            - n = number of times visited
-            - v = t/n
-        '''
-        #get the current state
+    def selection_and_expansion(self, printit=False):
         state = self.current_hash
         moves = self.get_legal_moves()
         child_states, move_child = self.get_children(moves)
-        # if iter_count > 3:
-        #     best_move = self.find_best_move(move_child, child_states)
-        #     print(f"ITERATION OVER bestmove {best_move}")
-        #     return best_move
-        if printit:
-            print(f"iter {iter_count}--------------------------------root state: {state}")
         #(1) SELECTION
         if state not in self.tt:
             if printit:
@@ -612,8 +585,53 @@ class CommandInterface:
         if printit:
             print("THE PATH TRAVELLED")
             print(path_to_leaf)
+
+    def mcts(self, iter_count, printit=False):
+        '''
+        1. Tree traversal: UCB(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
+            - choose child that maximizes this formula
+            - N is equal to the number of times the CURRENT aka parent node hs been visited 
+        2. Node Expansion
+        3. Rollout (random simulation)
+        4. Backpropogation
+
+        Given the current state, 
+            - is current state a leaf node?
+                -> NO: find the childnode (nextstate) from the action that maximises the UCB1 formula, set that child to be the current state, continue until leaf node (end of tree) reached
+                -> YES: 
+                    - how many times has lead node been sampled? is ni == 0
+                        -> Never been sampled: do a rollout
+                        -> Has been sampled: add new nodes to tree, for each possible move from current state, add a new state to the tree, current becomes first new child node, do a rollout
+        Each state has:
+            - t = total value
+            - n = number of times visited
+            - v = t/n
+        '''
+        current = self.current_hash
+        if printit:
+            print(f"iter {iter_count}--------------------------------root state: {current}")
+        #(1)SELECTION
+        #is current a leaf node?
+        while not self.is_leaf_node(current):
+            #search for a leaf node
+            pass
+        if printit:
+            print(f"{current} is a leaf node state")
+
+
         
-        #(3)SIMULATION
+        
+        
+
+
+
+
+
+
+
+
+
+        #(3)SIMULATION  ROLLOUT FROM CURRENT POSITION ON THE VOARD
         value = self.rollout() #resets the board to what it was from the rollout
         if printit:
             print("random rollout was", value)
@@ -642,6 +660,7 @@ class CommandInterface:
             print("resign")
             return True
         try:
+            print("hey god, its me again")
             start_time = time.time()
             time_limit = self.max_genmove_time
             # Set the time limit alarm
@@ -659,11 +678,12 @@ class CommandInterface:
                 iter_count += 1
             # Disable the time limit alarm 
             signal.alarm(0)
-        except Exception as e:
-            print(f"EXCEPTION?? {e}")
+        
         except TimeoutError as e:
             print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
+        except Exception as e:
+            print(f"EXCEPTION?? {e}")
         # finally:
         #     # Disable the time limit alarm 
         #     print(f"move {move}")
