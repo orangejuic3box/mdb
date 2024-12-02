@@ -14,7 +14,7 @@ class TimeoutException(Exception):
 
 # Function that is called when we reach the time limit
 def handle_alarm(signum, frame):
-    raise TimeoutException
+    raise TimeoutException("TIME IS UP SHIBAL SAEKI GAESKI")
 
 class CommandInterface:
 
@@ -505,7 +505,7 @@ class CommandInterface:
         if best_child == None:
             raise Exception("child state is empty or no child could be found in tt")
         best_move = move_child[best_child]
-        if printit:
+        if not printit:
             print("best move best child best value", best_move, best_child, best_value)
         return best_move
 
@@ -542,7 +542,7 @@ class CommandInterface:
             self.undo(move)
         return random.choice(moves)
 
-    def mcts(self, printit=False):
+    def mcts(self, iter_count, printit=False):
         '''
         1. Tree traversal: UCB(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
             - choose child that maximizes this formula
@@ -567,8 +567,12 @@ class CommandInterface:
         state = self.current_hash
         moves = self.get_legal_moves()
         child_states, move_child = self.get_children(moves)
+        # if iter_count > 3:
+        #     best_move = self.find_best_move(move_child, child_states)
+        #     print(f"ITERATION OVER bestmove {best_move}")
+        #     return best_move
         if printit:
-            print("root state:",state)
+            print(f"iter {iter_count}--------------------------------root state: {state}")
         #(1) SELECTION
         if state not in self.tt:
             if printit:
@@ -578,6 +582,9 @@ class CommandInterface:
         # is current state a leaf node?
         current = state #needed to traverse tree
         path_to_leaf = []
+        if printit:
+            print("going to look for a leaf")
+            print(f"is {current} leaf? {self.is_leaf_node(current)}")
         while not self.is_leaf_node(current):
             #there is a path further down
             best_child, best_move = self.selection(current)
@@ -589,9 +596,13 @@ class CommandInterface:
                 print(f"move: {best_move}")
             current = best_child
         if printit:
-            print("leafnode found!", self.is_leaf_node(current), current)
+            if current in move_child:
+                print("leafnode found!", self.is_leaf_node(current), current, move_child[current])
+            else:
+                print("leafnode found!", self.is_leaf_node(current), current)
+        
         total, n = self.tt[current]
-        if n == 0:
+        if n != 0:
             #(2) NODE EXPANSION
             moves = self.get_legal_moves()
             if moves: #there are nodes to expand!!
@@ -601,6 +612,7 @@ class CommandInterface:
         if printit:
             print("THE PATH TRAVELLED")
             print(path_to_leaf)
+        
         #(3)SIMULATION
         value = self.rollout() #resets the board to what it was from the rollout
         if printit:
@@ -621,39 +633,48 @@ class CommandInterface:
             print("the best move so far is", best_move)
         return best_move
 
-    def genmove(self, args):
+    def genmove(self, args, printit=False):
         #get all legal moves
         moves = self.get_legal_moves()
+        move = moves[random.randint(0, len(moves)-1)]
+        print(f"rand move {move}")
         if len(moves) == 0:
             print("resign")
             return True
-        # #make a copy of board
-        # player_copy = self.player
-        # board_copy = []
-        # for row in self.board:
-        #     board_copy.append(list(row))
         try:
             start_time = time.time()
             time_limit = self.max_genmove_time
             # Set the time limit alarm
-            signal.alarm(self.max_genmove_time)            
+            signal.alarm(self.max_genmove_time)
+            iter_count = 0            
             # Attempt to find a winning move by solving the board
-            while time.time() - start_time < (2/3)*time_limit:
-                move = self.mcts()
+            end_time = max(start_time + (7/8)*time_limit, start_time + time_limit - 1)
+            print(start_time + (7/8)*time_limit, start_time+time_limit)
+            print(start_time + time_limit - 1, start_time + time_limit)
+            print(end_time)
+            print(time.time())
+            while time.time() < end_time and iter_count < 3:
+                # print(f"iter {iter_count}")
+                move = self.mcts(iter_count, printit=True)
+                iter_count += 1
             # Disable the time limit alarm 
             signal.alarm(0)
-
-        except TimeoutError:
+        except Exception as e:
+            print(f"EXCEPTION?? {e}")
+        except TimeoutError as e:
             print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
-        # print("done mcts", time.time()-start_time)
-        # print(self.current_hash)
-        # print(self.board == board_copy, self.player == player_copy, "was it the same??")
-        # self.board = board_copy #board from before, makes sure not to use the board for search
-        # self.player = player_copy
+        # finally:
+        #     # Disable the time limit alarm 
+        #     print(f"move {move}")
+        #     signal.alarm(0)
+        if printit:
+            print("done mcts", time.time()-start_time)
+        print("shibal")
+        print(f"move {move}")
         self.play(move)
+        print("saeki")
         print(" ".join(move))
-
         return True
     
     #===============================================================================================
