@@ -5,6 +5,7 @@
 import sys
 import random
 import signal
+import time
 
 # Custom time out exception
 class TimeoutException(Exception):
@@ -231,7 +232,7 @@ class CommandInterface:
     #===============================================================================================
     # VVVVVVVVVV Start of Assignment 4 functions. Add/modify as needed. VVVVVVVV
     #===============================================================================================
-    def boolean_negamax(self, depth):
+    def boolean_negamax(self, depth, alpha, beta, start_time, time_limit):
         if depth == 0:
             return False  # Cannot guarantee a win at this depth limit
 
@@ -244,19 +245,27 @@ class CommandInterface:
             self.transposition_table[board_hash] = False
             return False
 
+        max_value = float('-inf')
+        
         moves = self.get_legal_moves()
         moves.sort(key=lambda move: self.evaluate_move_priority(move), reverse=True)
 
         for move in moves:
             self.make_move(move)
-            result = not self.boolean_negamax(depth - 1)
+            try:
+                value = -self.boolean_negamax(depth - 1, -beta, -alpha, start_time, time_limit)
+            except TimeoutException:
+                self.undo_move(move)
+                raise TimeoutException
             self.undo_move(move)
-            if result:
-                self.transposition_table[board_hash] = True
-                return True
+            if value > max_value:
+                max_value = value
+            alpha = max(alpha, value)
+            if alpha >= beta:
+                break
 
-        self.transposition_table[board_hash] = False
-        return False
+        self.transposition_table[board_hash] = max_value
+        return max_value
 
     def make_move(self, move):
         x, y, num = int(move[0]), int(move[1]), int(move[2])
@@ -288,9 +297,6 @@ class CommandInterface:
 
         return score
 
-
-
-
     def genmove(self, args):
         try:
             # Set the time limit alarm
@@ -301,52 +307,61 @@ class CommandInterface:
             if len(moves) == 0:
                 print("resign")
                 return True
+            
             best_move = None
             depth = 1
+            self.transposition_table = {}
+            start_time = time.time()
+            time_limit = self.max_genmove_time
 
-            while True:
+            while time.time() - start_time < time_limit:
                 curr_best_move = None
-
-                self.transposition_table = {}
 
                 moves.sort(key=lambda move: self.evaluate_move_priority(move), reverse=True)
 
                 for move in moves:
                     self.make_move(move)
-                    if not self.boolean_negamax(depth - 1):
-                        curr_best_move = move
-                        self.undo_move(move)    
-                        break
+                    try:
+                        if self.boolean_negamax(depth, float('-inf'), float('inf'), start_time, time_limit):
+                            curr_best_move = move
+                            break
+                    except TimeoutException:
+                        self.undo_move(move)
+                        raise TimeoutException
                     self.undo_move(move)
 
                 if curr_best_move:
                     best_move = curr_best_move
-                    break
 
                 depth += 1
 
-        
-                #stop if we have reached the maximum depth 
+                # Stop if we have reached the maximum depth 
                 if depth > 100:
                     break
 
+            # Play the best move found
             if best_move:
                 self.play(best_move)
                 print(" ".join(best_move))
             else:
-                # No winning move found, random move
-                rand_move = moves[random.randint(0, len(moves) - 1)]
-                self.play(rand_move)
-                print(" ".join(rand_move))
-
-
-
-            # Disable the time limit alarm 
-            signal.alarm(0)
+                # No winning move found, play a prioritized move
+                best_move = max(moves, key=self.evaluate_move_priority)
+                self.play(best_move)
+                print(" ".join(best_move))
 
         except TimeoutException:
-            # This block of code runs when the time limit is reached
-            print("resign")
+            # Disable the time limit alarm 
+            signal.alarm(0) 
+            # Play the best move found so far
+            if best_move:
+                self.play(best_move)
+                print(" ".join(best_move))
+            else:
+                print("resign")
+
+        finally:
+            # Ensure the alarm is always disabled
+            signal.alarm(0)
 
         return True
     
