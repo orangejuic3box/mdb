@@ -348,11 +348,15 @@ class CommandInterface:
 
     def ucb1(self, state, N, C, printit=False):
         total, n = self.tt[state]
-        if n == 0: #child has not been seen
+        if n == 0 or N == 0: #child has not been seen
             return float("inf")
         v = total/n
+        print(v, total, n, "v t n")
+        print(N, "N")
         ln = math.log(N)
+        print(ln, N, "ln N")
         sq_rt = math.sqrt(ln/n)
+        print(sq_rt, "sqrt")
         ucb = v + C * sq_rt
         if printit:
             print(v, total, n, "v t n")
@@ -430,19 +434,25 @@ class CommandInterface:
     def maximize_ucb(self, child_states, N, printit=True):
         ucb_values = {}
         #gets each ucb value and put it into the dictionary with child as key and ucb value as val
+        print("IN MAC UCB", child_states)
         for child in child_states: #in the tree
             c = self.adaptive_c(self.get_depth(), self.n*self.m)
+            print("ucb bad")
             ucb_values[child] = self.ucb1(child, N, c)
+            print("ucb good")
+        print("in maximise ucb put all the ucb values in the dictionary")
         max_child = max(ucb_values, key=ucb_values.get) 
         #mags: change this to choose random child if same ucb values
-        max_value = max(ucb_values)
+        print("max child function error")
+        max_value = max(ucb_values.values())
+        print("max value function error")
         if float("inf") in ucb_values.values():
             print("INFINITE CHILD", ucb_values)
         if printit:
-            print(child_states)
+            # print(child_states)
             print(f"no. of children {len(child_states)}")
-            self.show("")
-            print("max", max_value)
+            # self.show("")
+            print("max", max_value, "value in ucb list")
         return max_child, max_value
 
     def is_leaf_node(self, state):
@@ -515,18 +525,20 @@ class CommandInterface:
             self.undo(move)
         return child_states, move_child
 
-    def selection(self, current, printit=False):
-        moves = self.get_legal_moves()
-        child_states, move_child = self.get_children(moves)
+    def selection(self, current, child_states, move_child, printit=False):
         in_the_tree = set(child_states).intersection(self.tt.keys())
+        print(f"total children:{len(child_states)}, in the tree:{len(in_the_tree)}")
         if printit:
             print("currenthash", self.current_hash)
             print(len(child_states), "children")
             print(len(self.tt), "nodes in the tree")
         #pick maximizing ucb1 child
         N = self.tt[current][1]
+        print("GOT N")
         best_child, highest_ucb_score = self.maximize_ucb(in_the_tree, N)
+        print("MAXIMISE UCB ERRPR")
         best_move = move_child[best_child]
+        print("in selection, maximise ucb was called already")
         if printit:
             print("child with highest ucb score is ", best_child, "with move", best_move, "and score", highest_ucb_score)
         return best_child, best_move
@@ -595,26 +607,35 @@ class CommandInterface:
         3. Rollout (random simulation)
         4. Backpropogation
         '''
-        if printit:
+        if True:
             print(f"iter {iter_count}--------------------------------root state: {self.current_hash}")
         #add in the root if its not there already
         if self.current_hash not in self.tt:
             self.tt[self.current_hash] = [float("inf"), 0]
         #always expand the root before starting MCTS
         moves = self.get_legal_moves()
-        child_states, move_child = self.get_children()
+        child_states, move_child = self.get_children(moves)
         self.add_children(child_states)
         #(1)SELECTION - select a node until we find a node we don't know how to select anymore
         path_to_leaf = []
+        state_path = [self.current_hash]
         #is current a leaf node?
         while not self.is_leaf_node(self.current_hash):
             if True:
                 print(f"curr: {self.current_hash} is not a leaf node")
             #search for a leaf node by picking next node to have highest ucb score
-            best_child, best_move = self.selection(self.current_hash)
-            print("   ", best_child)
+            moves = self.get_legal_moves()
+            child_states, move_child = self.get_children(moves)
+            print("---------SELECTION BEGIN-----")
+            best_child, best_move = self.selection(self.current_hash, child_states, move_child)
+            print("---------SELECTION OVER------")
+            print("   ", best_child, "was selected, thats move", move_child[best_child])
             path_to_leaf.append(best_move)
+            state_path.append(best_child)
+            # print("path to ", path_to_leaf)
             self.quick_play(best_move)
+            self.show("")
+            assert self.current_hash == best_child, "state is not the intended one, selection"
         if printit:
             print(f"{self.current_hash} is a leaf node state", self.is_leaf_node(self.current_hash))
         moves = self.get_legal_moves()
@@ -634,10 +655,13 @@ class CommandInterface:
             rand_state = random.choice(child_states)
             rand_move = move_child[rand_state]
             path_to_leaf.append(rand_move)
+            state_path.append(rand_state)
             self.quick_play(rand_move)
-        if printit:
+            assert rand_state == self.current_hash, "state is not the intended one, expansion"
+        if True:
             print("THE PATH TRAVELLED")
             print(path_to_leaf)
+            print(state_path)
         #(3)SIMULATION - rollout from current position on the board
         value = self.rollout() #resets the board to what it was from the rollout
         if printit:
