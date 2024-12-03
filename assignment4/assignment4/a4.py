@@ -400,11 +400,11 @@ class CommandInterface:
             if not moves: #no more moves to play, terminal
                 break
             #RANDOM POLICY
-            # move = random.choice(moves)
+            move = random.choice(moves)
             #MOVE PRIORITY POLICY
             # move = max(moves, key=self.evaluate_move_priority)
             #GREEDY POLICY
-            move = self.greedy(moves)
+            # move = self.greedy(moves)
             self.quick_play(move)
             i += 1
         #check who the winner is
@@ -443,6 +443,7 @@ class CommandInterface:
 
     def maximize_ucb(self, child_states, N, printit=False):
         ucb_values = {}
+        #gets each ucb value and put it into the dictionary with child as key and ucb value as val
         for child in child_states:
             c = self.adaptive_c(self.get_depth(), self.n*self.m)
             ucb_values[child] = self.ucb1(child, N, c)
@@ -457,9 +458,9 @@ class CommandInterface:
         '''
         n = 0 OR no child nodes in the tree
         '''
-        _, n = self.tt[state]
-        if n == 0: #n = 0, has not been explored
-            return True
+        # _, n = self.tt[state]
+        # if n == 0: #n = 0, has not been explored
+        #     return True
         moves = self.get_legal_moves()
         child_states, _ = self.get_children(moves) #_ = move_child, we dont need it here
         for child in child_states:
@@ -487,6 +488,8 @@ class CommandInterface:
     def find_best_move(self, move_child:dict, child_states:list, printit=False):
         if printit:
             print("find bestie--------------")
+        assert child_states != [], "no children?"
+        assert len(child_states) == len(move_child), "mismatched children"
         # Initialize variables for the best child and its value
         best_child = None
         best_value = -float('inf')  # Start with a very small value
@@ -502,10 +505,15 @@ class CommandInterface:
                 if value > best_value: #this will pick the last child with the best val
                     best_child = child
                     best_value = value
+        if child_states == []:
+            raise Exception("child state is empty")
+        if child_states != [] and best_child == None:
+            print(child_states)
+            raise Exception("no child could be found in tt")
         if best_child == None:
-            raise Exception("child state is empty or no child could be found in tt")
+            raise Exception("something else?? best_child still none")
         best_move = move_child[best_child]
-        if not printit:
+        if printit:
             print("best move best child best value", best_move, best_child, best_value)
         return best_move
 
@@ -615,84 +623,97 @@ class CommandInterface:
         current = self.current_hash
         if printit:
             print(f"iter {iter_count}--------------------------------root state: {current}")
-        #add in the root if its not there already and grab the possible moves and the child state it would lead to
+        """ #add in the root if its not there already and grab possible moves and the child state it would lead to
         if current not in self.tt:
             self.tt[current] = [float("inf"), 0]
-            #put in the child states if they don't exist already
-            moves = self.get_legal_moves()
-            child_states, _ = self.get_children(moves)
-            self.add_children(child_states)
-
-        #delete these prints later
-        print(self.tt)
-
-
-
+            #put in the child states if they don't exist already """
         #(1)SELECTION - select a node until we find a node we don't know how to select anymore
+        path_to_leaf = []
         #is current a leaf node?
         while not self.is_leaf_node(current):
-            #search for a leaf node
-            pass
+            if printit:
+                print(f"curr: {current} is not a leaf node")
+            #search for a leaf node by picking next node to have highest ucb score
+            best_child, best_move = self.selection(current)
+            path_to_leaf.append(best_move)
+            self.quick_play(best_move)
+            current = best_child
+            assert self.current_hash == current, "current state is not the intended one, selection"
         if printit:
             print(f"{current} is a leaf node state", self.is_leaf_node(current))
+        moves = self.get_legal_moves()
+        child_states, move_child = self.get_children(moves)
         #(2)EXPANSION
         #is the ni for current equal to 0?
-        _, n = self.tt[current]
+        t, n = self.tt[current]
+        if printit:
+            print(f"curr {current}: [{t}, {n}]")
         if n != 0:
+            if printit:
+                print(f"adding kids for curr: {current}")
             #add child nodes to the tree
             #set current to be one these children
-            pass
-
-
-
-        
-        
-        
-
-
-
-
-
-        #(3)SIMULATION  ROLLOUT FROM CURRENT POSITION ON THE VOARD
+            self.add_children(child_states)
+            #pick a random child to be new current
+            current = random.choice(child_states)
+            rand_move = move_child[current]
+            path_to_leaf.append(rand_move)
+            self.quick_play(rand_move)
+            assert self.current_hash == current, "current state is not the intended one, expansion"
+        if printit:
+            print("THE PATH TRAVELLED")
+            print(path_to_leaf)
+        #(3)SIMULATION - rollout from current position on the board
         value = self.rollout() #resets the board to what it was from the rollout
         if printit:
             print("random rollout was", value)
         #(4)BACKPROPOGATION
-        self.propogate(path_to_leaf, value)
+        self.propogate(path_to_leaf, value, printit=False)
         #keep doing this until time runs out?
-
+        moves = self.get_legal_moves()
+        child_states, move_child = self.get_children(moves)
         best_move = self.find_best_move(move_child, child_states)
         if printit:
             print("ALMOST OVER")
-            print(state, self.current_hash)
             # self.show("")
             # print(self.tt)
             # print("mc", move_child)
             # print()
             # print("cs", child_states)
-            print("the best move so far is", best_move)
+            # print("the best move so far is", best_move)
         return best_move
 
     def genmove(self, args, printit=False):
-        #get all legal moves
+        start_time = time.time()
+        time_limit = self.max_genmove_time
+        # Set the time limit alarm
+        signal.alarm(self.max_genmove_time)
+        # Attempt to find a winning move by solving the board
+        end_time = max(start_time + (7/8)*time_limit, start_time + time_limit - 1)
+        # #get all legal moves
         moves = self.get_legal_moves()
-        move = moves[random.randint(0, len(moves)-1)]
-        print(f"rand move {move}")
+        # move = moves[random.randint(0, len(moves)-1)]
+        # print(f"rand move {move}")
         if len(moves) == 0:
             print("resign")
             return True
         try:
-            print("hey god, its me again")
-            start_time = time.time()
-            time_limit = self.max_genmove_time
-            # Set the time limit alarm
-            signal.alarm(self.max_genmove_time)
+            if printit:
+                print("hey god, its me again")
+            #set up initial tree?
+            #add in the root if its not there already and grab possible moves and the child state it would lead to
+            if self.current_hash not in self.tt:
+                print("SHOULDN'T FIRE VERY OFTEN")
+                self.tt[self.current_hash] = [float("inf"), 0]
+                #put in the child states if they don't exist already
+                child_states, _ = self.get_children(moves)
+                self.add_children(child_states)
+
+            print("THE FIRST TIME TREE HAS", len(self.tt), "NODES IN THE TREE")
             iter_count = 0            
-            # Attempt to find a winning move by solving the board
-            end_time = max(start_time + (7/8)*time_limit, start_time + time_limit - 1)
-            while time.time() < end_time and iter_count < 3:
-                # print(f"iter {iter_count}")
-                move = self.mcts(iter_count, printit=True)
+            while time.time() < end_time:
+                print(f"iter {iter_count}")
+                move = self.mcts(iter_count, printit=False)
                 iter_count += 1
             # Disable the time limit alarm 
             signal.alarm(0)
