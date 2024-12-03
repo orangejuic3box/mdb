@@ -348,7 +348,7 @@ class CommandInterface:
 
     def ucb1(self, state, N, C, printit=False):
         total, n = self.tt[state]
-        if n == 0: #child has not been seen
+        if n == 0 or N ==0: #child has not been seen
             return float("inf")
         v = total/n
         ln = math.log(N)
