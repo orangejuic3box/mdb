@@ -427,22 +427,16 @@ class CommandInterface:
             rand_move = moves[random.randint(0, len(moves)-1)]
             return rand_move
 
-    def maximize_ucb(self, child_states, N, printit=True):
+    def maximize_ucb(self, child_states, N, printit=False):
         ucb_values = {}
         #gets each ucb value and put it into the dictionary with child as key and ucb value as val
-        print("IN MAC UCB", child_states)
         for child in child_states: #in the tree
             c = self.adaptive_c(self.get_depth(), self.n*self.m)
-            print("ucb bad")
             ucb_values[child] = self.ucb1(child, N, c)
-            print("ucb good")
-        print("in maximise ucb put all the ucb values in the dictionary")
         max_child = max(ucb_values, key=ucb_values.get) 
         #mags: change this to choose random child if same ucb values
-        print("max child function error")
         max_value = max(ucb_values.values())
-        print("max value function error")
-        if float("inf") in ucb_values.values():
+        if float("inf") in ucb_values.values() and printit:
             print("INFINITE CHILD", ucb_values)
         if printit:
             # print(child_states)
@@ -556,7 +550,7 @@ class CommandInterface:
         3. Rollout (random simulation)
         4. Backpropogation
         '''
-        if True:
+        if printit:
             print(f"iter {iter_count}--------------------------------root state: {self.current_hash}")
         #add in the root if its not there already
         if self.current_hash not in self.tt:
@@ -570,20 +564,16 @@ class CommandInterface:
         state_path = [self.current_hash]
         #is current a leaf node?
         while not self.is_leaf_node(self.current_hash):
-            if True:
+            if printit:
                 print(f"curr: {self.current_hash} is not a leaf node")
             #search for a leaf node by picking next node to have highest ucb score
             moves = self.get_legal_moves()
             child_states, move_child = self.get_children(moves)
-            print("---------SELECTION BEGIN-----")
             best_child, best_move = self.selection(self.current_hash, child_states, move_child)
-            print("---------SELECTION OVER------")
-            print("   ", best_child, "was selected, thats move", move_child[best_child])
             path_to_leaf.append(best_move)
             state_path.append(best_child)
             # print("path to ", path_to_leaf)
             self.quick_play(best_move)
-            self.show("")
             assert self.current_hash == best_child, "state is not the intended one, selection"
         if printit:
             print(f"{self.current_hash} is a leaf node state", self.is_leaf_node(self.current_hash))
@@ -607,7 +597,7 @@ class CommandInterface:
             state_path.append(rand_state)
             self.quick_play(rand_move)
             assert rand_state == self.current_hash, "state is not the intended one, expansion"
-        if True:
+        if printit:
             print("THE PATH TRAVELLED")
             print(path_to_leaf)
             print(state_path)
@@ -637,7 +627,8 @@ class CommandInterface:
         # Set the time limit alarm
         signal.alarm(self.max_genmove_time)
         # Attempt to find a winning move by solving the board
-        end_time = max(start_time + (7/8)*time_limit, start_time + time_limit - 1)
+        # end_time = max(start_time + (7/8)*time_limit, start_time + time_limit - 1)
+        end_time = start_time + (2/3) * time_limit
         # #get all legal moves
         moves = self.get_legal_moves()
         # move = moves[random.randint(0, len(moves)-1)]
@@ -650,23 +641,23 @@ class CommandInterface:
                 print("hey god, its me again")
             iter_count = 0            
             while time.time() < end_time:
-                print(f"iter {iter_count}")
+                # print(f"iter {iter_count}")
                 move = self.mcts(iter_count, printit=False)
                 iter_count += 1
             # Disable the time limit alarm 
             signal.alarm(0)
         except TimeoutException as e:
-            print("rah timeout, getting random move")
+            # print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
             signal.alarm(0)
         except Exception as e:
             print(f"EXCEPTION?? {e}")
-            print("rah mcts fcked up, getting random move")
-            move = moves[random.randint(0, len(moves)-1)]
+            # print("rah mcts fcked up, getting random move")
+            # move = moves[random.randint(0, len(moves)-1)]
             signal.alarm(0)
         if printit:
             print("done mcts", time.time()-start_time)
-        print(f"move {move}")
+        # print(f"move {move}")
         self.play(move)
         print(" ".join(move))
         return True

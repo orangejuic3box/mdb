@@ -166,7 +166,7 @@ def send_command(process, command, expected_fail = False, to_mark = False):
                 return True, output, ""
         
         except TimeoutException:
-            print(output)
+            print(output, "timeout")
             return False, output, "Command timeout, exceeded maximum allowed time of " + str(DYNAMIC_TIMEOUT) + " seconds."
 
     except Exception as e:
@@ -301,7 +301,7 @@ def perform_test(student_player, test):
     return test.matched
 
 # Test a given process on a number of tests. Prints and returns results.
-def test_process(student_player, tests, print_output=False):
+def test_process(student_player, tests, print_output=True): #change to False
     t0 = time.time()
     successful = []
     failed = []
