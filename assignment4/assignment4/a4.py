@@ -418,20 +418,6 @@ class CommandInterface:
         self.player = original_player
         self.current_hash = original_hash
         return value
-    
-    def second_largest(self, nums):
-        # Check if the list has at least two distinct elements
-        if len(nums) < 2:
-            return None  # Not enough elements to find second largest
-        # Initialize the two largest numbers
-        first, second = float('-inf'), float('-inf')
-        for num in nums:
-            if num > first:
-                second = first  # Update second largest
-                first = num     # Update largest
-            elif num > second and num != first:
-                second = num    # Update second largest
-        return second if second != float('-inf') else None
 
     def maximize_ucb(self, child_states, N, printit=False):
         ucb_values = {}
@@ -440,9 +426,6 @@ class CommandInterface:
             ucb_values[child] = self.ucb1(child, N, c)
         max_child = max(ucb_values, key=ucb_values.get) #mags: change this to choose random child if same ucb values
         max_value = max(ucb_values)
-        s = self.second_largest(ucb_values)
-        if printit:
-            print(max_value, s, max_value-s)
         return max_child, max_value
 
     def is_leaf_node(self, state):
@@ -538,51 +521,34 @@ class CommandInterface:
         '''
         1. Tree traversal: UCB(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
             - choose child that maximizes this formula
-            - N is equal to the number of times the CURRENT aka parent node hs been visited 
         2. Node Expansion
         3. Rollout (random simulation)
         4. Backpropogation
-
-        Given the current state, 
-            - is current state a leaf node?
-                -> NO: find the childnode (nextstate) from the action that maximises the UCB1 formula, set that child to be the current state, continue until leaf node (end of tree) reached
-                -> YES: 
-                    - how many times has lead node been sampled? is ni == 0
-                        -> Never been sampled: do a rollout
-                        -> Has been sampled: add new nodes to tree, for each possible move from current state, add a new state to the tree, current becomes first new child node, do a rollout
-        Each state has:
-            - t = total value
-            - n = number of times visited
-            - v = t/n
         '''
-        #get the current state
-        state = self.current_hash
+        if printit:
+            print("root state:",self.current_hash)
+        if self.current_hash not in self.tt:
+            #put root into tree
+            self.tt[self.current_hash] = [float("inf"), 0]
         moves = self.get_legal_moves()
         child_states, move_child = self.get_children(moves)
-        if printit:
-            print("root state:",state)
+        #always expand root
         #(1) SELECTION
-        if state not in self.tt:
-            if printit:
-                print("NEVER SEEN BEFORE, should be the root aka hash 0")
-            #put root into tree
-            self.tt[state] = [float("inf"), 0]
         # is current state a leaf node?
-        current = state #needed to traverse tree
         path_to_leaf = []
-        while not self.is_leaf_node(current):
+        while not self.is_leaf_node(self.current_hash):
             #there is a path further down
-            best_child, best_move = self.selection(current)
+            best_child, best_move = self.selection(self.current_hash)
             self.quick_play(best_move)
             path_to_leaf.append(best_move)
             if printit:
-                print(f"curr: {current}")
+                print(f"curr: {self.current_hash}")
                 self.show("")
                 print(f"move: {best_move}")
-            current = best_child
+            assert self.current_hash == best_child, "did not go to the right kid"
         if printit:
-            print("leafnode found!", self.is_leaf_node(current), current)
-        total, n = self.tt[current]
+            print("leafnode found!", self.is_leaf_node(self.current_hash), self.current_hash)
+        total, n = self.tt[self.current_hash]
         if n == 0:
             #(2) NODE EXPANSION
             moves = self.get_legal_moves()
@@ -604,7 +570,6 @@ class CommandInterface:
         best_move = self.find_best_move(move_child, child_states)
         if printit:
             print("ALMOST OVER")
-            print(state, self.current_hash)
             # self.show("")
             # print(self.tt)
             # print("mc", move_child)
@@ -614,6 +579,10 @@ class CommandInterface:
         return best_move
 
     def genmove(self, args):
+        start_time = time.time()
+        time_limit = self.max_genmove_time
+        # Set the time limit alarm
+        signal.alarm(self.max_genmove_time)  
         #get all legal moves
         moves = self.get_legal_moves()
         if len(moves) == 0:
@@ -624,20 +593,18 @@ class CommandInterface:
         # board_copy = []
         # for row in self.board:
         #     board_copy.append(list(row))
-        try:
-            start_time = time.time()
-            time_limit = self.max_genmove_time
-            # Set the time limit alarm
-            signal.alarm(self.max_genmove_time)            
+        try:          
             # Attempt to find a winning move by solving the board
             while time.time() - start_time < (2/3)*time_limit:
                 move = self.mcts()
             # Disable the time limit alarm 
             signal.alarm(0)
-
         except TimeoutError:
-            print("rah timeout, getting random move")
+            # print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
+            signal.alarm(0)
+        except Exception as e:
+            signal.alarm(0)
         # print("done mcts", time.time()-start_time)
         # print(self.current_hash)
         # print(self.board == board_copy, self.player == player_copy, "was it the same??")
