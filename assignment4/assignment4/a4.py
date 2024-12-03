@@ -355,10 +355,10 @@ class CommandInterface:
         sq_rt = math.sqrt(ln/n)
         ucb = v + C * sq_rt
         if printit:
-            print(v, total, n)
-            print(ln, N)
-            print(sq_rt)
-            print(ucb)
+            print(v, total, n, "v t n")
+            print(ln, N, "ln N")
+            print(sq_rt, "sqrt")
+            print(ucb, "ucb")
         return ucb
 
     def evaluate_move_priority(self, move):
@@ -418,20 +418,6 @@ class CommandInterface:
         self.player = original_player
         self.current_hash = original_hash
         return value
-    
-    def second_largest(self, nums):
-        # Check if the list has at least two distinct elements
-        if len(nums) < 2:
-            return None  # Not enough elements to find second largest
-        # Initialize the two largest numbers
-        first, second = float('-inf'), float('-inf')
-        for num in nums:
-            if num > first:
-                second = first  # Update second largest
-                first = num     # Update largest
-            elif num > second and num != first:
-                second = num    # Update second largest
-        return second if second != float('-inf') else None
 
     def greedy(self, moves):
         child_states, move_child = self.get_children(moves)
@@ -441,26 +427,28 @@ class CommandInterface:
             rand_move = moves[random.randint(0, len(moves)-1)]
             return rand_move
 
-    def maximize_ucb(self, child_states, N, printit=False):
+    def maximize_ucb(self, child_states, N, printit=True):
         ucb_values = {}
         #gets each ucb value and put it into the dictionary with child as key and ucb value as val
-        for child in child_states:
+        for child in child_states: #in the tree
             c = self.adaptive_c(self.get_depth(), self.n*self.m)
             ucb_values[child] = self.ucb1(child, N, c)
-        max_child = max(ucb_values, key=ucb_values.get) #mags: change this to choose random child if same ucb values
+        max_child = max(ucb_values, key=ucb_values.get) 
+        #mags: change this to choose random child if same ucb values
         max_value = max(ucb_values)
-        s = self.second_largest(ucb_values)
+        if float("inf") in ucb_values.values():
+            print("INFINITE CHILD", ucb_values)
         if printit:
-            print(max_value, s, max_value-s)
+            print(child_states)
+            print(f"no. of children {len(child_states)}")
+            self.show("")
+            print("max", max_value)
         return max_child, max_value
 
     def is_leaf_node(self, state):
         '''
-        n = 0 OR no child nodes in the tree
+        no child nodes in the tree
         '''
-        # _, n = self.tt[state]
-        # if n == 0: #n = 0, has not been explored
-        #     return True
         moves = self.get_legal_moves()
         child_states, _ = self.get_children(moves) #_ = move_child, we dont need it here
         for child in child_states:
@@ -603,63 +591,50 @@ class CommandInterface:
         '''
         1. Tree traversal: UCB(si) = avg(vi) + C*sqrt[ln(N)/ni], C=2
             - choose child that maximizes this formula
-            - N is equal to the number of times the CURRENT aka parent node hs been visited 
         2. Node Expansion
         3. Rollout (random simulation)
         4. Backpropogation
-
-        Given the current state, 
-            - is current state a leaf node?
-                -> NO: find the childnode (nextstate) from the action that maximises the UCB1 formula, set that child to be the current state, continue until leaf node (end of tree) reached
-                -> YES: 
-                    - how many times has lead node been sampled? is ni == 0
-                        -> Never been sampled: do a rollout
-                        -> Has been sampled: add new nodes to tree, for each possible move from current state, add a new state to the tree, current becomes first new child node, do a rollout
-        Each state has:
-            - t = total value
-            - n = number of times visited
-            - v = t/n
         '''
-        current = self.current_hash
         if printit:
-            print(f"iter {iter_count}--------------------------------root state: {current}")
-        """ #add in the root if its not there already and grab possible moves and the child state it would lead to
-        if current not in self.tt:
-            self.tt[current] = [float("inf"), 0]
-            #put in the child states if they don't exist already """
+            print(f"iter {iter_count}--------------------------------root state: {self.current_hash}")
+        #add in the root if its not there already
+        if self.current_hash not in self.tt:
+            self.tt[self.current_hash] = [float("inf"), 0]
+        #always expand the root before starting MCTS
+        moves = self.get_legal_moves()
+        child_states, move_child = self.get_children()
+        self.add_children(child_states)
         #(1)SELECTION - select a node until we find a node we don't know how to select anymore
         path_to_leaf = []
         #is current a leaf node?
-        while not self.is_leaf_node(current):
-            if printit:
-                print(f"curr: {current} is not a leaf node")
+        while not self.is_leaf_node(self.current_hash):
+            if True:
+                print(f"curr: {self.current_hash} is not a leaf node")
             #search for a leaf node by picking next node to have highest ucb score
-            best_child, best_move = self.selection(current)
+            best_child, best_move = self.selection(self.current_hash)
+            print("   ", best_child)
             path_to_leaf.append(best_move)
             self.quick_play(best_move)
-            current = best_child
-            assert self.current_hash == current, "current state is not the intended one, selection"
         if printit:
-            print(f"{current} is a leaf node state", self.is_leaf_node(current))
+            print(f"{self.current_hash} is a leaf node state", self.is_leaf_node(self.current_hash))
         moves = self.get_legal_moves()
         child_states, move_child = self.get_children(moves)
         #(2)EXPANSION
         #is the ni for current equal to 0?
-        t, n = self.tt[current]
+        t, n = self.tt[self.current_hash]
         if printit:
-            print(f"curr {current}: [{t}, {n}]")
+            print(f"curr {self.current_hash}: [{t}, {n}]")
         if n != 0:
             if printit:
-                print(f"adding kids for curr: {current}")
+                print(f"adding kids for curr: {self.current_hash}")
             #add child nodes to the tree
             #set current to be one these children
             self.add_children(child_states)
             #pick a random child to be new current
-            current = random.choice(child_states)
-            rand_move = move_child[current]
+            rand_state = random.choice(child_states)
+            rand_move = move_child[rand_state]
             path_to_leaf.append(rand_move)
             self.quick_play(rand_move)
-            assert self.current_hash == current, "current state is not the intended one, expansion"
         if printit:
             print("THE PATH TRAVELLED")
             print(path_to_leaf)
@@ -700,16 +675,6 @@ class CommandInterface:
         try:
             if printit:
                 print("hey god, its me again")
-            #set up initial tree?
-            #add in the root if its not there already and grab possible moves and the child state it would lead to
-            if self.current_hash not in self.tt:
-                print("SHOULDN'T FIRE VERY OFTEN")
-                self.tt[self.current_hash] = [float("inf"), 0]
-                #put in the child states if they don't exist already
-                child_states, _ = self.get_children(moves)
-                self.add_children(child_states)
-
-            print("THE FIRST TIME TREE HAS", len(self.tt), "NODES IN THE TREE")
             iter_count = 0            
             while time.time() < end_time:
                 print(f"iter {iter_count}")
