@@ -340,6 +340,7 @@ class CommandInterface:
         return "game was not over"
 
     def adaptive_c(self, depth, max_depth, printit=False):
+        depth = min(depth, max_depth) 
         if printit:
             print(depth, max_depth)
         initial_c = 1.41  # High exploration at root
@@ -447,7 +448,7 @@ class CommandInterface:
             c = self.adaptive_c(self.get_depth(), self.n*self.m)
             ucb_values[child] = self.ucb1(child, N, c)
         max_child = max(ucb_values, key=ucb_values.get) #mags: change this to choose random child if same ucb values
-        max_value = max(ucb_values)
+        max_value = ucb_values[max_child]
         s = self.second_largest(ucb_values)
         if printit:
             print(max_value, s, max_value-s)
@@ -456,7 +457,7 @@ class CommandInterface:
     def is_leaf_node(self, state):
         '''
         n = 0 OR no child nodes in the tree
-        '''
+        '''                         
         _, n = self.tt[state]
         if n == 0:
             return True
@@ -643,7 +644,7 @@ class CommandInterface:
             # Disable the time limit alarm 
             signal.alarm(0)
 
-        except TimeoutError:
+        except TimeoutException:
             print("rah timeout, getting random move")
             move = moves[random.randint(0, len(moves)-1)]
         # print("done mcts", time.time()-start_time)
