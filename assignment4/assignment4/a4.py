@@ -351,12 +351,8 @@ class CommandInterface:
         if n == 0 or N == 0: #child has not been seen
             return float("inf")
         v = total/n
-        print(v, total, n, "v t n")
-        print(N, "N")
         ln = math.log(N)
-        print(ln, N, "ln N")
         sq_rt = math.sqrt(ln/n)
-        print(sq_rt, "sqrt")
         ucb = v + C * sq_rt
         if printit:
             print(v, total, n, "v t n")
@@ -527,18 +523,15 @@ class CommandInterface:
 
     def selection(self, current, child_states, move_child, printit=False):
         in_the_tree = set(child_states).intersection(self.tt.keys())
-        print(f"total children:{len(child_states)}, in the tree:{len(in_the_tree)}")
+        # print(f"total children:{len(child_states)}, in the tree:{len(in_the_tree)}")
         if printit:
             print("currenthash", self.current_hash)
             print(len(child_states), "children")
             print(len(self.tt), "nodes in the tree")
         #pick maximizing ucb1 child
         N = self.tt[current][1]
-        print("GOT N")
         best_child, highest_ucb_score = self.maximize_ucb(in_the_tree, N)
-        print("MAXIMISE UCB ERRPR")
         best_move = move_child[best_child]
-        print("in selection, maximise ucb was called already")
         if printit:
             print("child with highest ucb score is ", best_child, "with move", best_move, "and score", highest_ucb_score)
         return best_child, best_move
@@ -549,50 +542,6 @@ class CommandInterface:
             self.tt[self.current_hash] = [float("inf"), 0] #add new nodes
             self.undo(move)
         return random.choice(moves)
-
-    def selection_and_expansion(self, printit=False):
-        state = self.current_hash
-        moves = self.get_legal_moves()
-        child_states, move_child = self.get_children(moves)
-        #(1) SELECTION
-        if state not in self.tt:
-            if printit:
-                print("NEVER SEEN BEFORE, should be the root aka hash 0")
-            #put root into tree
-            self.tt[state] = [float("inf"), 0]
-        # is current state a leaf node?
-        current = state #needed to traverse tree
-        path_to_leaf = []
-        if printit:
-            print("going to look for a leaf")
-            print(f"is {current} leaf? {self.is_leaf_node(current)}")
-        while not self.is_leaf_node(current):
-            #there is a path further down
-            best_child, best_move = self.selection(current)
-            self.quick_play(best_move)
-            path_to_leaf.append(best_move)
-            if printit:
-                print(f"curr: {current}")
-                self.show("")
-                print(f"move: {best_move}")
-            current = best_child
-        if printit:
-            if current in move_child:
-                print("leafnode found!", self.is_leaf_node(current), current, move_child[current])
-            else:
-                print("leafnode found!", self.is_leaf_node(current), current)
-        
-        total, n = self.tt[current]
-        if n != 0:
-            #(2) NODE EXPANSION
-            moves = self.get_legal_moves()
-            if moves: #there are nodes to expand!!
-                move = self.expand(moves)
-                self.quick_play(move)
-                path_to_leaf.append(move)
-        if printit:
-            print("THE PATH TRAVELLED")
-            print(path_to_leaf)
 
     def add_children(self, child_states):
         for child in child_states:
