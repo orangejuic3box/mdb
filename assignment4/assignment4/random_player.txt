@@ -1,4 +1,4 @@
-game 5 5
+game 6 8
 = 1
 timelimit 10
 = 1

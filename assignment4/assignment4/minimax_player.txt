@@ -1,6 +1,6 @@
 game 5 5
 = 1
-timelimit 10
+timelimit 30
 = 1
 set_opponent minimax_player.py
 = 1
